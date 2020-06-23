@@ -1,0 +1,13 @@
+{
+    "type": "mysql",
+    "host": "eventlocationptr.cskwxlvzautr.eu-central-1.rds.amazonaws.com",
+    "port": 3306,
+    "username": "root",
+    "password": "rootroot",
+    "database": "eventLocation",
+    "entities": [
+        "tables/*.js"
+    ],
+    "logging": true,
+    "synchronize": true
+}
