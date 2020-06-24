@@ -41,7 +41,8 @@ var typeorm_2 = require("typeorm");
 var details_1 = require("./tables/details");
 var overview_1 = require("./tables/overview");
 require("reflect-metadata");
-// import {randomId} from './randomGenerator'
+var randomGenerator_1 = require("./randomGenerator");
+var userdata_1 = require("./tables/userdata");
 var express = require("express");
 var bodyParser = require("body-parser");
 var cors = require("cors");
@@ -52,6 +53,7 @@ server.use(bodyParser.json());
 //!Create TypeORM-Connection and Table
 typeorm_1.createConnection().then(function (conn) {
     console.log("Datenbank-Connection steht");
+    console.log("randomId-Generator Test", randomGenerator_1.default());
 });
 // !API-Schnittstelle Locations
 server.get("/", function (req, res) {
@@ -90,12 +92,13 @@ server.get("/locationDetails", function (req, res) { return __awaiter(void 0, vo
     });
 }); });
 server.post("/post", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
+    var uniqueId, expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                uniqueId = randomGenerator_1.default();
                 expectedBodyDetails = {
-                    id: req.body.id,
+                    id: uniqueId,
                     description: req.body.description,
                     squaremeter: req.body.squaremeter,
                     persons: req.body.persons,
@@ -108,12 +111,13 @@ server.post("/post", function (req, res) { return __awaiter(void 0, void 0, void
                     calendar: req.body.calendar,
                 };
                 expectedBodyPreview = {
-                    id: req.body.id,
+                    id: uniqueId,
                     title: req.body.title,
                     bild: req.body.bild,
                     place: req.body.place,
                     price: req.body.price,
-                    date: new Date()
+                    date: new Date(),
+                    userId: req.body.userId
                 };
                 failResponse = [];
                 for (item in expectedBodyDetails) {
@@ -140,7 +144,7 @@ server.post("/post", function (req, res) { return __awaiter(void 0, void 0, void
                     ])
                         .execute()
                         .catch(function (err) {
-                        res.send("Uuupps, hier ist ein Fehler aufgetreten");
+                        res.send(err);
                     })
                     //*Erstelle Preview
                 ];
@@ -156,7 +160,7 @@ server.post("/post", function (req, res) { return __awaiter(void 0, void 0, void
                         .execute()
                         .catch(function (err) {
                         console.log(err);
-                        res.send("Eintrag schon vorhanden");
+                        res.send(err);
                     })
                     //*Berichterstattung
                 ];
@@ -186,7 +190,10 @@ server.delete("/delete", function (req, res) { return __awaiter(void 0, void 0, 
                         .delete()
                         .from(overview_1.LocationPreview)
                         .where("id = :id", { id: req.body.id })
-                        .execute()];
+                        .execute()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
             case 1:
                 _a.sent();
                 return [4 /*yield*/, typeorm_2.getConnection()
@@ -194,7 +201,10 @@ server.delete("/delete", function (req, res) { return __awaiter(void 0, void 0, 
                         .delete()
                         .from(details_1.LocationDetails)
                         .where("id = :id", { id: req.body.id })
-                        .execute()];
+                        .execute()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
             case 2:
                 _a.sent();
                 res.send("Location mit ID " + req.body.id + " wurde erfolgreich gel\u00F6scht");
@@ -271,6 +281,76 @@ server.put("/put", function (req, res) { return __awaiter(void 0, void 0, void 0
             case 4:
                 //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
                 res.send("Location mit ID " + req.body.id + " wurde erfolgreich angepasst !");
+                return [2 /*return*/];
+        }
+    });
+}); });
+server.get("/user", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var userdata;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("userdata")
+                    .getMany()
+                    .catch(function (err) {
+                    res.send(err);
+                })];
+            case 1:
+                userdata = _a.sent();
+                res.send(userdata);
+                return [2 /*return*/];
+        }
+    });
+}); });
+server.get("/userLocations", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var userdata;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("userdata") //*Alias für Einträge in LocationPreview
+                    .innerJoinAndSelect("userdata.ownLocations", "preview") //*Alias für Einträge in LocationPreview & LocationDetails
+                    .getMany()
+                    .catch(function (err) {
+                    res.send(err);
+                })];
+            case 1:
+                userdata = _a.sent();
+                res.send(userdata);
+                return [2 /*return*/];
+        }
+    });
+}); });
+server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var userdata;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                userdata = {
+                    id: "GastUnique",
+                    name: "Max",
+                    passwort: "geheim",
+                    email: "mustermann@gmx.de",
+                    status: "private",
+                    profilePicture: "none",
+                    businessLetter: "none",
+                    favourites: "none",
+                    ownLocations: []
+                };
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .insert()
+                        .into(userdata_1.UserData)
+                        .values([
+                        userdata
+                    ])
+                        .execute()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
+            case 1:
+                _a.sent();
                 return [2 /*return*/];
         }
     });

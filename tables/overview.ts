@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryColumn, ManyToMany, JoinTable, OneToOne, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, ManyToMany, JoinTable, OneToOne, JoinColumn, ManyToOne } from "typeorm";
 import { LocationDetails } from './details'
+import { UserData } from "./userdata";
 
 @Entity()
 export class LocationPreview {
@@ -16,10 +17,13 @@ export class LocationPreview {
     price: string;
     @Column()
     date: Date;
-    @Column()
-    userId: string;
+    // @Column()
+    // userId: string;
 
     @OneToOne(type => LocationDetails)
     @JoinColumn({ name: 'id' })
-    details: LocationDetails;
+    details: LocationDetails; //Zielspalte
+
+    @ManyToOne(type => UserData, userId => userId.ownLocations)
+    userId: UserData //Zielspalte
 }

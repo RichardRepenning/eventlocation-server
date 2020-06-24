@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LocationPreview = void 0;
 var typeorm_1 = require("typeorm");
 var details_1 = require("./details");
+var userdata_1 = require("./userdata");
 var LocationPreview = /** @class */ (function () {
     function LocationPreview() {
     }
@@ -40,14 +41,14 @@ var LocationPreview = /** @class */ (function () {
         __metadata("design:type", Date)
     ], LocationPreview.prototype, "date", void 0);
     __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", String)
-    ], LocationPreview.prototype, "userId", void 0);
-    __decorate([
         typeorm_1.OneToOne(function (type) { return details_1.LocationDetails; }),
         typeorm_1.JoinColumn({ name: 'id' }),
         __metadata("design:type", details_1.LocationDetails)
     ], LocationPreview.prototype, "details", void 0);
+    __decorate([
+        typeorm_1.ManyToOne(function (type) { return userdata_1.UserData; }, function (userId) { return userId.ownLocations; }),
+        __metadata("design:type", userdata_1.UserData)
+    ], LocationPreview.prototype, "userId", void 0);
     LocationPreview = __decorate([
         typeorm_1.Entity()
     ], LocationPreview);

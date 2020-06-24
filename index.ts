@@ -4,7 +4,8 @@ import { getConnection, createQueryBuilder } from "typeorm";
 import { LocationDetails } from './tables/details'
 import { LocationPreview } from './tables/overview'
 import "reflect-metadata";
-// import {randomId} from './randomGenerator'
+import randomId from './randomGenerator'
+import { UserData } from "./tables/userdata";
 
 const express = require("express")
 const bodyParser = require("body-parser")
@@ -19,6 +20,7 @@ server.use(bodyParser.json())
 //!Create TypeORM-Connection and Table
 createConnection().then(conn => {
     console.log("Datenbank-Connection steht")
+    console.log("randomId-Generator Test", randomId())
 })
 
 // !API-Schnittstelle Locations
@@ -49,8 +51,10 @@ server.get("/locationDetails", async (req: Request, res: Response) => {
 })
 server.post("/post", async (req: Request, res: Response) => {
 
+    let uniqueId = randomId()
+
     const expectedBodyDetails = {
-        id: req.body.id,
+        id: uniqueId,
         description: req.body.description,
         squaremeter: req.body.squaremeter,
         persons: req.body.persons,
@@ -64,12 +68,13 @@ server.post("/post", async (req: Request, res: Response) => {
     }
 
     const expectedBodyPreview = {
-        id: req.body.id,
+        id: uniqueId,
         title: req.body.title,
         bild: req.body.bild,
         place: req.body.place,
         price: req.body.price,
-        date: new Date()
+        date: new Date(),
+        userId: req.body.userId
     }
 
     //*Fail-Log erstellen
@@ -102,7 +107,7 @@ server.post("/post", async (req: Request, res: Response) => {
         ])
         .execute()
         .catch((err) => {
-            res.send("Uuupps, hier ist ein Fehler aufgetreten")
+            res.send(err)
         })
 
     //*Erstelle Preview
@@ -116,7 +121,7 @@ server.post("/post", async (req: Request, res: Response) => {
         .execute()
         .catch((err) => {
             console.log(err)
-            res.send("Eintrag schon vorhanden")
+            res.send(err)
         })
 
     //*Berichterstattung
@@ -143,6 +148,9 @@ server.delete("/delete", async (req: Request, res: Response) => {
         .from(LocationPreview)
         .where("id = :id", { id: req.body.id })
         .execute()
+        .catch((err) => {
+            res.send(err)
+        })
 
     await getConnection()
         .createQueryBuilder()
@@ -150,6 +158,9 @@ server.delete("/delete", async (req: Request, res: Response) => {
         .from(LocationDetails)
         .where("id = :id", { id: req.body.id })
         .execute()
+        .catch((err) => {
+            res.send(err)
+        })
 
     res.send(`Location mit ID ${req.body.id} wurde erfolgreich gelöscht`)
 
@@ -185,7 +196,7 @@ server.put("/put", async (req: Request, res: Response) => {
         place: null,
         price: null,
     }
-     //*Templates zum Updaten ENDE
+    //*Templates zum Updaten ENDE
 
     //!Erstelle Update-Objecte aus Template
     let queryUpdaterDetails = {}
@@ -228,6 +239,64 @@ server.put("/put", async (req: Request, res: Response) => {
     //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
     res.send(`Location mit ID ${req.body.id} wurde erfolgreich angepasst !`)
 })
+
+server.get("/user", async (req: Request, res: Response) => {
+
+    const userdata = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("userdata")
+        .getMany()
+        .catch((err) => {
+            res.send(err)
+        })
+
+    res.send(userdata)
+
+})
+
+server.get("/userLocations", async (req: Request, res: Response) => {
+
+    const userdata = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("userdata") //*Alias für Einträge in LocationPreview
+        .innerJoinAndSelect("userdata.ownLocations", "preview") //*Alias für Einträge in LocationPreview & LocationDetails
+        .getMany()
+        .catch((err) => {
+            res.send(err)
+        })
+    
+    res.send(userdata)
+
+})
+
+server.post("/createUser", async (req: Request, res: Response) => {
+
+    const userdata = {
+        id: "GastUnique",
+        name: "Max",
+        passwort: "geheim",
+        email: "mustermann@gmx.de",
+        status: "private",
+        profilePicture: "none",
+        businessLetter: "none",
+        favourites: "none",
+        ownLocations: []
+    }
+
+    await getConnection()
+        .createQueryBuilder()
+        .insert()
+        .into(UserData)
+        .values([
+            userdata
+        ])
+        .execute()
+        .catch((err) => {
+            res.send(err)
+        })
+
+})
+
 // !API-Schnittstelle Locations ENDE
 
 server.listen(port, function () {
