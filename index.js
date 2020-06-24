@@ -288,6 +288,48 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
         }
     });
 }); });
+server.post("/searchLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var searchParameter, parameter, searchResponse;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                searchParameter = {
+                    place: null,
+                    userId: null,
+                    title: null,
+                    id: null,
+                    price: null,
+                    date: null
+                };
+                for (parameter in searchParameter) {
+                    if (req.body[parameter] === undefined || req.body[parameter] === null) {
+                        searchParameter[parameter] = "";
+                    }
+                    else {
+                        searchParameter[parameter] = req.body[parameter];
+                    }
+                    console.log(searchParameter);
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(overview_1.LocationPreview)
+                        .createQueryBuilder("preview")
+                        .where("preview.place like :place", { place: "%" + searchParameter.place + "%" })
+                        .andWhere("preview.userId like :userId", { userId: "%" + searchParameter.userId + "%" })
+                        .andWhere("preview.title like :title", { title: "%" + searchParameter.title + "%" })
+                        .andWhere("preview.id like :id", { id: "%" + searchParameter.id + "%" })
+                        .andWhere("preview.price like :price", { price: "%" + searchParameter.price + "%" })
+                        .andWhere("preview.date like :date", { date: "%" + searchParameter.date + "%" })
+                        .getMany()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
+            case 1:
+                searchResponse = _a.sent();
+                res.send(searchResponse);
+                return [2 /*return*/];
+        }
+    });
+}); });
 //? TODO
 // server.get("/user", async (req: Request, res: Response) => {
 //     const userdata = await getConnection()

@@ -6,6 +6,8 @@ import { LocationPreview } from './tables/overview'
 import "reflect-metadata";
 import randomId from './randomGenerator'
 import { UserData } from "./tables/userdata";
+import { title } from "process";
+import { privateEncrypt } from "crypto";
 
 const express = require("express")
 const bodyParser = require("body-parser")
@@ -259,6 +261,46 @@ server.put("/updateLocation", async (req: Request, res: Response) => {
     //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
     res.send(`Location mit ID ${req.body.id} wurde erfolgreich angepasst !`)
 })
+
+server.post("/searchLocation", async (req: Request, res: Response) => {
+
+    //!SearchParameter
+    const searchParameter = {
+        place: null,
+        userId: null,
+        title: null,
+        id: null,
+        price: null,
+        date: null
+    }
+
+    for (let parameter in searchParameter) {
+        if (req.body[parameter] === undefined || req.body[parameter] === null) {
+            searchParameter[parameter] = ""
+        }
+        else {
+            searchParameter[parameter] = req.body[parameter]
+        }
+        console.log(searchParameter)
+    }
+
+    const searchResponse = await getConnection()
+        .getRepository(LocationPreview)
+        .createQueryBuilder("preview")
+        .where("preview.place like :place", { place: `%${searchParameter.place}%` })
+        .andWhere("preview.userId like :userId", { userId: `%${searchParameter.userId}%` })
+        .andWhere("preview.title like :title", { title: `%${searchParameter.title}%` })
+        .andWhere("preview.id like :id", { id: `%${searchParameter.id}%` })
+        .andWhere("preview.price like :price", { price: `%${searchParameter.price}%` })
+        .andWhere("preview.date like :date", { date: `%${searchParameter.date}%` })
+        .getMany()
+        .catch((err) => {
+            res.send(err)
+        })
+
+    res.send(searchResponse)
+})
+
 
 //? TODO
 // server.get("/user", async (req: Request, res: Response) => {
