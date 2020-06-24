@@ -45,7 +45,7 @@ var UserData = /** @class */ (function () {
     ], UserData.prototype, "businessLetter", void 0);
     __decorate([
         typeorm_1.Column(),
-        __metadata("design:type", String)
+        __metadata("design:type", Array)
     ], UserData.prototype, "favourites", void 0);
     __decorate([
         typeorm_1.OneToMany(function (type) { return overview_1.LocationPreview; }, function (ownLocations) { return ownLocations.userId; }),

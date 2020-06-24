@@ -92,11 +92,14 @@ server.get("/locationDetails", function (req, res) { return __awaiter(void 0, vo
     });
 }); });
 server.post("/post", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var uniqueId, expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
+    var uniqueId, userId, expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 uniqueId = randomGenerator_1.default();
+                if (req.body.userId === undefined || req.body.userId === null) {
+                    userId = "Gast";
+                }
                 expectedBodyDetails = {
                     id: uniqueId,
                     description: req.body.description,
@@ -117,7 +120,7 @@ server.post("/post", function (req, res) { return __awaiter(void 0, void 0, void
                     place: req.body.place,
                     price: req.body.price,
                     date: new Date(),
-                    userId: req.body.userId
+                    userId: userId
                 };
                 failResponse = [];
                 for (item in expectedBodyDetails) {
@@ -323,19 +326,22 @@ server.get("/userLocations", function (req, res) { return __awaiter(void 0, void
     });
 }); });
 server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var userdata;
+    var userId, userdata;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                if (req.body.id === undefined || req.body.id === null) {
+                    userId = "Gast";
+                }
                 userdata = {
-                    id: "GastUnique",
-                    name: "Max",
-                    passwort: "geheim",
-                    email: "mustermann@gmx.de",
-                    status: "private",
-                    profilePicture: "none",
-                    businessLetter: "none",
-                    favourites: "none",
+                    id: userId,
+                    name: req.body.name,
+                    passwort: req.body.passwort,
+                    email: req.body.email,
+                    status: req.body.status,
+                    profilePicture: req.body.profilePicture,
+                    businessLetter: req.body.businessLetter,
+                    favourites: [],
                     ownLocations: []
                 };
                 return [4 /*yield*/, typeorm_2.getConnection()

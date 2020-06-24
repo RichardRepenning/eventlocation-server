@@ -52,6 +52,10 @@ server.get("/locationDetails", async (req: Request, res: Response) => {
 server.post("/post", async (req: Request, res: Response) => {
 
     let uniqueId = randomId()
+    let userId
+    if (req.body.userId === undefined || req.body.userId === null) {
+        userId = "Gast"
+    }
 
     const expectedBodyDetails = {
         id: uniqueId,
@@ -74,7 +78,7 @@ server.post("/post", async (req: Request, res: Response) => {
         place: req.body.place,
         price: req.body.price,
         date: new Date(),
-        userId: req.body.userId
+        userId: userId
     }
 
     //*Fail-Log erstellen
@@ -271,15 +275,21 @@ server.get("/userLocations", async (req: Request, res: Response) => {
 
 server.post("/createUser", async (req: Request, res: Response) => {
 
+    let userId
+
+    if (req.body.id === undefined || req.body.id === null) {
+        userId = "Gast"
+    }
+
     const userdata = {
-        id: "GastUnique",
-        name: "Max",
-        passwort: "geheim",
-        email: "mustermann@gmx.de",
-        status: "private",
-        profilePicture: "none",
-        businessLetter: "none",
-        favourites: "none",
+        id: userId, //User-ID default "Gast"
+        name: req.body.name,
+        passwort: req.body.passwort,
+        email: req.body.email,
+        status: req.body.status,
+        profilePicture: req.body.profilePicture,
+        businessLetter: req.body.businessLetter,
+        favourites: [],
         ownLocations: []
     }
 

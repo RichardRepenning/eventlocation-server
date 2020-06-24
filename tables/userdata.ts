@@ -20,7 +20,7 @@ export class UserData {
     businessLetter: string; //Gewerbeschein
 
     @Column()
-    favourites: string;
+    favourites: string[]
     // @Column()
     // ownLocations: string;
     
@@ -31,7 +31,6 @@ export class UserData {
     // @OneToOne(type => LocationDetails)
     // @JoinColumn({ name: 'id' })
     // details: LocationDetails;
-
     @OneToMany(type => LocationPreview, ownLocations => ownLocations.userId)
     ownLocations: LocationPreview[] //Zielspalte
 }
