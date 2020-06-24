@@ -23,11 +23,21 @@ createConnection().then(conn => {
     console.log("randomId-Generator Test", randomId())
 })
 
+
+
+
+
+
+
 // !API-Schnittstelle Locations
 server.get("/", (req: Request, res: Response) => {
     console.log("Server ist online !")
     res.send("Server ist online !")
 })
+
+
+
+
 
 server.get("/locationPreview", async (req: Request, res: Response) => {
 
@@ -44,15 +54,18 @@ server.get("/locationDetails", async (req: Request, res: Response) => {
     const locationDetails = await getConnection()
         .getRepository(LocationPreview)
         .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
-        .innerJoinAndSelect("preview.details", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+        .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
         .getMany();
 
     res.send(locationDetails)
 })
-server.post("/post", async (req: Request, res: Response) => {
+
+server.post("/postLocation", async (req: Request, res: Response) => {
 
     let uniqueId = randomId()
+
     let userId
+
     if (req.body.userId === undefined || req.body.userId === null) {
         userId = "Gast"
     }
@@ -78,10 +91,11 @@ server.post("/post", async (req: Request, res: Response) => {
         place: req.body.place,
         price: req.body.price,
         date: new Date(),
+        username: req.body.username,
         userId: userId
     }
 
-    //*Fail-Log erstellen
+    //     //*Fail-Log erstellen
     let failResponse = []
 
     for (let item in expectedBodyDetails) {
@@ -139,7 +153,8 @@ server.post("/post", async (req: Request, res: Response) => {
     res.send(responseBody)
 })
 
-server.delete("/delete", async (req: Request, res: Response) => {
+
+server.delete("/deleteLocation", async (req: Request, res: Response) => {
 
     if (req.body.id === undefined || req.body.id === null) {
         res.send("Bitte eine gültige ID angeben")
@@ -170,7 +185,8 @@ server.delete("/delete", async (req: Request, res: Response) => {
 
 })
 
-server.put("/put", async (req: Request, res: Response) => {
+
+server.put("/updateLocation", async (req: Request, res: Response) => {
 
     if (req.body.id === undefined || req.body.id === null) {
         res.send("Bitte eine gültige ID angeben")
@@ -244,70 +260,80 @@ server.put("/put", async (req: Request, res: Response) => {
     res.send(`Location mit ID ${req.body.id} wurde erfolgreich angepasst !`)
 })
 
-server.get("/user", async (req: Request, res: Response) => {
+//? TODO
+// server.get("/user", async (req: Request, res: Response) => {
 
-    const userdata = await getConnection()
-        .getRepository(UserData)
-        .createQueryBuilder("userdata")
-        .getMany()
-        .catch((err) => {
-            res.send(err)
-        })
+//     const userdata = await getConnection()
+//         .getRepository(UserData)
+//         .createQueryBuilder("userdata")
+//         .getMany()
+//         .catch((err) => {
+//             res.send(err)
+//         })
 
-    res.send(userdata)
+//     res.send(userdata)
 
-})
+// })
 
-server.get("/userLocations", async (req: Request, res: Response) => {
+// server.get("/userLocations", async (req: Request, res: Response) => {
 
-    const userdata = await getConnection()
-        .getRepository(UserData)
-        .createQueryBuilder("userdata") //*Alias für Einträge in LocationPreview
-        .innerJoinAndSelect("userdata.ownLocations", "preview") //*Alias für Einträge in LocationPreview & LocationDetails
-        .getMany()
-        .catch((err) => {
-            res.send(err)
-        })
-    
-    res.send(userdata)
+//     const userdata = await getConnection()
+//         .getRepository(UserData)
+//         .createQueryBuilder("userdata") //*Alias für Einträge in LocationPreview
+//         .innerJoinAndSelect("userdata.ownLocations", "preview") //*Alias für Einträge in LocationPreview & LocationDetails
+//         .getMany()
+//         .catch((err) => {
+//             res.send(err)
+//         })
 
-})
+//     res.send(userdata)
 
-server.post("/createUser", async (req: Request, res: Response) => {
+// })
 
-    let userId
+// server.post("/createUser", async (req: Request, res: Response) => {
 
-    if (req.body.id === undefined || req.body.id === null) {
-        userId = "Gast"
-    }
+//     let userId
 
-    const userdata = {
-        id: userId, //User-ID default "Gast"
-        name: req.body.name,
-        passwort: req.body.passwort,
-        email: req.body.email,
-        status: req.body.status,
-        profilePicture: req.body.profilePicture,
-        businessLetter: req.body.businessLetter,
-        favourites: [],
-        ownLocations: []
-    }
+//     if (req.body.id === undefined || req.body.id === null) {
+//         userId = "Gast"
+//     }
 
-    await getConnection()
-        .createQueryBuilder()
-        .insert()
-        .into(UserData)
-        .values([
-            userdata
-        ])
-        .execute()
-        .catch((err) => {
-            res.send(err)
-        })
+//     const userdata = {
+//         id: userId, //User-ID default "Gast"
+//         name: req.body.name,
+//         passwort: req.body.passwort,
+//         email: req.body.email,
+//         status: req.body.status,
+//         profilePicture: req.body.profilePicture,
+//         businessLetter: req.body.businessLetter,
+//         favourites: ""
+//     }
 
-})
+//     await getConnection()
+//         .createQueryBuilder()
+//         .insert()
+//         .into(UserData)
+//         .values([
+//             userdata
+//         ])
+//         .execute()
+//         .catch((err) => {
+//             res.send(err)
+//         })
+
+// })
+//? TODO ENDE
+
+
 
 // !API-Schnittstelle Locations ENDE
+
+
+
+
+
+
+
 
 server.listen(port, function () {
     console.log("event-server läuft")

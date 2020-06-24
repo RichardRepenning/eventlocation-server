@@ -7,7 +7,7 @@ export class UserData {
     @PrimaryColumn()
     id: string;
     @Column()
-    name: string;
+    username: string;
     @Column()
     passwort: string;
     @Column()
@@ -18,19 +18,8 @@ export class UserData {
     profilePicture: string;
     @Column()
     businessLetter: string; //Gewerbeschein
-
     @Column()
-    favourites: string[]
-    // @Column()
-    // ownLocations: string;
-    
-    //template
-    // @Column()
-    // date: Date;
-
-    // @OneToOne(type => LocationDetails)
-    // @JoinColumn({ name: 'id' })
-    // details: LocationDetails;
-    @OneToMany(type => LocationPreview, ownLocations => ownLocations.userId)
-    ownLocations: LocationPreview[] //Zielspalte
+    favourites: string;
+    @Column()
+    ownLoacations: string;
 }

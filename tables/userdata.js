@@ -11,7 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserData = void 0;
 var typeorm_1 = require("typeorm");
-var overview_1 = require("./overview");
 var UserData = /** @class */ (function () {
     function UserData() {
     }
@@ -22,7 +21,7 @@ var UserData = /** @class */ (function () {
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], UserData.prototype, "name", void 0);
+    ], UserData.prototype, "username", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
@@ -45,12 +44,12 @@ var UserData = /** @class */ (function () {
     ], UserData.prototype, "businessLetter", void 0);
     __decorate([
         typeorm_1.Column(),
-        __metadata("design:type", Array)
+        __metadata("design:type", String)
     ], UserData.prototype, "favourites", void 0);
     __decorate([
-        typeorm_1.OneToMany(function (type) { return overview_1.LocationPreview; }, function (ownLocations) { return ownLocations.userId; }),
-        __metadata("design:type", Array)
-    ], UserData.prototype, "ownLocations", void 0);
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], UserData.prototype, "ownLoacations", void 0);
     UserData = __decorate([
         typeorm_1.Entity()
     ], UserData);

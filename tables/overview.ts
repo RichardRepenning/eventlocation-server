@@ -14,16 +14,15 @@ export class LocationPreview {
     @Column()
     place: string;
     @Column()
-    price: string;
+    price: number;
     @Column()
     date: Date;
-    // @Column()
-    // userId: string;
+    @Column()
+    username: string;
+    @Column()
+    userId: string;
 
     @OneToOne(type => LocationDetails)
     @JoinColumn({ name: 'id' })
-    details: LocationDetails; //Zielspalte
-
-    @ManyToOne(type => UserData, userId => userId.ownLocations)
-    userId: UserData //Zielspalte
+    locationDetails: LocationDetails; //Zielspalte
 }
