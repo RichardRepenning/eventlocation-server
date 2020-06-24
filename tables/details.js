@@ -16,7 +16,7 @@ var LocationDetails = /** @class */ (function () {
     }
     __decorate([
         typeorm_1.PrimaryColumn(),
-        __metadata("design:type", Number)
+        __metadata("design:type", String)
     ], LocationDetails.prototype, "id", void 0);
     __decorate([
         typeorm_1.Column(),

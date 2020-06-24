@@ -5,7 +5,7 @@ import { LocationDetails } from './details'
 export class LocationPreview {
 
     @PrimaryColumn()
-    id: number;
+    id: string;
     @Column()
     title: string;
     @Column()
@@ -16,6 +16,8 @@ export class LocationPreview {
     price: string;
     @Column()
     date: Date;
+    @Column()
+    userId: string;
 
     @OneToOne(type => LocationDetails)
     @JoinColumn({ name: 'id' })

@@ -5,7 +5,7 @@ import { LocationPreview } from "./overview";
 export class LocationDetails {
 
     @PrimaryColumn()
-    id: number;
+    id: string;
     @Column()
     description: string;
     @Column()

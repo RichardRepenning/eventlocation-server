@@ -9,48 +9,51 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LocationPreview = void 0;
+exports.UserData = void 0;
 var typeorm_1 = require("typeorm");
-var details_1 = require("./details");
-var LocationPreview = /** @class */ (function () {
-    function LocationPreview() {
+// import { LocationDetails } from './details'
+var UserData = /** @class */ (function () {
+    function UserData() {
     }
     __decorate([
         typeorm_1.PrimaryColumn(),
         __metadata("design:type", String)
-    ], LocationPreview.prototype, "id", void 0);
+    ], UserData.prototype, "id", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], LocationPreview.prototype, "title", void 0);
+    ], UserData.prototype, "name", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], LocationPreview.prototype, "bild", void 0);
+    ], UserData.prototype, "passwort", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], LocationPreview.prototype, "place", void 0);
+    ], UserData.prototype, "email", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], LocationPreview.prototype, "price", void 0);
-    __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", Date)
-    ], LocationPreview.prototype, "date", void 0);
+    ], UserData.prototype, "status", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], LocationPreview.prototype, "userId", void 0);
+    ], UserData.prototype, "profilePicture", void 0);
     __decorate([
-        typeorm_1.OneToOne(function (type) { return details_1.LocationDetails; }),
-        typeorm_1.JoinColumn({ name: 'id' }),
-        __metadata("design:type", details_1.LocationDetails)
-    ], LocationPreview.prototype, "details", void 0);
-    LocationPreview = __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], UserData.prototype, "businessLetter", void 0);
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], UserData.prototype, "favourites", void 0);
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], UserData.prototype, "ownLocations", void 0);
+    UserData = __decorate([
         typeorm_1.Entity()
-    ], LocationPreview);
-    return LocationPreview;
+    ], UserData);
+    return UserData;
 }());
-exports.LocationPreview = LocationPreview;
+exports.UserData = UserData;

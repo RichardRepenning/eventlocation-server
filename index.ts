@@ -4,13 +4,16 @@ import { getConnection, createQueryBuilder } from "typeorm";
 import { LocationDetails } from './tables/details'
 import { LocationPreview } from './tables/overview'
 import "reflect-metadata";
+// import {randomId} from './randomGenerator'
 
 const express = require("express")
 const bodyParser = require("body-parser")
+const cors = require("cors")
 
 const server = express()
 const port = process.env.PORT || 3000
 
+server.use(cors())
 server.use(bodyParser.json())
 
 //!Create TypeORM-Connection and Table

@@ -41,10 +41,13 @@ var typeorm_2 = require("typeorm");
 var details_1 = require("./tables/details");
 var overview_1 = require("./tables/overview");
 require("reflect-metadata");
+// import {randomId} from './randomGenerator'
 var express = require("express");
 var bodyParser = require("body-parser");
+var cors = require("cors");
 var server = express();
 var port = process.env.PORT || 3000;
+server.use(cors());
 server.use(bodyParser.json());
 //!Create TypeORM-Connection and Table
 typeorm_1.createConnection().then(function (conn) {
