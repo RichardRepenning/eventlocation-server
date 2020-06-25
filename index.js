@@ -47,18 +47,21 @@ var bodyParser = require("body-parser");
 var cors = require("cors");
 var server = express();
 var port = process.env.PORT || 3000;
+//!USE CORS for internal testing purposes
 server.use(cors());
 server.use(bodyParser.json());
-//!Create TypeORM-Connection and Table
+//!Create TypeORM-Connection and Table(if not exists)
 typeorm_1.createConnection().then(function (conn) {
     console.log("Datenbank-Connection steht");
     console.log("randomId-Generator Test", randomGenerator_1.default());
 });
-// !API-Schnittstelle Locations
+// !API-Schnittstelle Locations //
+//*Just tests if Server is online
 server.get("/", function (req, res) {
     console.log("Server ist online !");
     res.send("Server ist online !");
 });
+//? Get Preview
 server.get("/locationPreview", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var locationPreview;
     return __generator(this, function (_a) {
@@ -74,6 +77,7 @@ server.get("/locationPreview", function (req, res) { return __awaiter(void 0, vo
         }
     });
 }); });
+//?Get FullView
 server.get("/locationDetails", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var locationDetails;
     return __generator(this, function (_a) {
@@ -90,6 +94,7 @@ server.get("/locationDetails", function (req, res) { return __awaiter(void 0, vo
         }
     });
 }); });
+//?Post Location
 server.post("/postLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var uniqueId, userId, expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
     return __generator(this, function (_a) {
@@ -180,6 +185,7 @@ server.post("/postLocation", function (req, res) { return __awaiter(void 0, void
         }
     });
 }); });
+//?Delete Location
 server.delete("/deleteLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -215,6 +221,7 @@ server.delete("/deleteLocation", function (req, res) { return __awaiter(void 0, 
         }
     });
 }); });
+//?Update Location
 server.put("/updateLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var expectedBodyDetails, expectedBodyPreview, queryUpdaterDetails, queryUpdaterPreview, item;
     return __generator(this, function (_a) {
@@ -288,49 +295,63 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
         }
     });
 }); });
-server.post("/searchLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var searchParameter, parameter, searchResponse;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+//?Combined Search-Algorythm
+server.post("/searchLocationAdvanced", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var searchParameter, searchQuery, parameter, searchResponse;
+    var _a, _b, _c, _d;
+    return __generator(this, function (_e) {
+        switch (_e.label) {
             case 0:
                 searchParameter = {
-                    place: null,
-                    userId: null,
-                    title: null,
-                    id: null,
-                    price: null,
-                    date: null
+                    username: "preview",
+                    userId: "preview",
+                    title: "preview",
+                    id: "preview",
+                    price: "preview",
+                    date: "preview",
+                    sanitary: "details",
+                    power: "details",
+                    mobile: "details",
+                    waterpipeline: "details",
+                    description: "details",
+                    squaremeter: "details",
+                    persons: "details",
+                    minimumConsumption: "details",
+                    category: "details",
+                    calendar: "details"
                 };
+                searchQuery = typeorm_1.getRepository(overview_1.LocationPreview)
+                    .createQueryBuilder("preview")
+                    .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+                    .where("preview.place like :place", { place: "%" + req.body.place + "%" });
+                //*Filter and transform parameter & booleans (MariaDB doesn´t support real booleans)
                 for (parameter in searchParameter) {
-                    if (req.body[parameter] === undefined || req.body[parameter] === null) {
-                        searchParameter[parameter] = "";
+                    if (req.body[parameter] === "false" || req.body[parameter] === false) {
+                        req.body[parameter] = 0;
+                        searchQuery.andWhere(searchParameter[parameter] + "." + parameter + " = :" + parameter, (_a = {}, _a[parameter] = req.body[parameter], _a));
                     }
-                    else {
-                        searchParameter[parameter] = req.body[parameter];
+                    else if (req.body[parameter] === "true" || req.body[parameter] === true) {
+                        req.body[parameter] = 1;
+                        searchQuery.andWhere(searchParameter[parameter] + "." + parameter + " = :" + parameter, (_b = {}, _b[parameter] = req.body[parameter], _b));
                     }
-                    console.log(searchParameter);
+                    else if (req.body[parameter] > 0) {
+                        searchQuery.andWhere(searchParameter[parameter] + "." + parameter + " <= :" + parameter, (_c = {}, _c[parameter] = req.body[parameter], _c));
+                    }
+                    else if (req.body[parameter] !== "" && req.body[parameter] !== null && req.body[parameter] !== undefined) {
+                        searchQuery.andWhere(searchParameter[parameter] + "." + parameter + " like :" + parameter, (_d = {}, _d[parameter] = "%" + req.body[parameter] + "%", _d));
+                    }
                 }
-                return [4 /*yield*/, typeorm_2.getConnection()
-                        .getRepository(overview_1.LocationPreview)
-                        .createQueryBuilder("preview")
-                        .where("preview.place like :place", { place: "%" + searchParameter.place + "%" })
-                        .andWhere("preview.userId like :userId", { userId: "%" + searchParameter.userId + "%" })
-                        .andWhere("preview.title like :title", { title: "%" + searchParameter.title + "%" })
-                        .andWhere("preview.id like :id", { id: "%" + searchParameter.id + "%" })
-                        .andWhere("preview.price like :price", { price: "%" + searchParameter.price + "%" })
-                        .andWhere("preview.date like :date", { date: "%" + searchParameter.date + "%" })
-                        .getMany()
-                        .catch(function (err) {
+                return [4 /*yield*/, searchQuery.getMany().catch(function (err) {
                         res.send(err);
                     })];
             case 1:
-                searchResponse = _a.sent();
+                searchResponse = _e.sent();
                 res.send(searchResponse);
                 return [2 /*return*/];
         }
     });
 }); });
-//? TODO
+//TODO
 // server.get("/user", async (req: Request, res: Response) => {
 //     const userdata = await getConnection()
 //         .getRepository(UserData)
@@ -380,7 +401,7 @@ server.post("/searchLocation", function (req, res) { return __awaiter(void 0, vo
 //         })
 // })
 //? TODO ENDE
-// !API-Schnittstelle Locations ENDE
+// !API-Schnittstelle Locations ENDE //
 server.listen(port, function () {
     console.log("event-server läuft");
 });

@@ -1,25 +1,22 @@
 import { Request, Response } from "express";
-import { createConnection, Connection } from "typeorm";
+import { createConnection, Connection, getRepository } from "typeorm";
 import { getConnection, createQueryBuilder } from "typeorm";
 import { LocationDetails } from './tables/details'
 import { LocationPreview } from './tables/overview'
 import "reflect-metadata";
 import randomId from './randomGenerator'
-import { UserData } from "./tables/userdata";
-import { title } from "process";
-import { privateEncrypt } from "crypto";
 
 const express = require("express")
 const bodyParser = require("body-parser")
 const cors = require("cors")
-
 const server = express()
 const port = process.env.PORT || 3000
 
+//!USE CORS for internal testing purposes
 server.use(cors())
 server.use(bodyParser.json())
 
-//!Create TypeORM-Connection and Table
+//!Create TypeORM-Connection and Table(if not exists)
 createConnection().then(conn => {
     console.log("Datenbank-Connection steht")
     console.log("randomId-Generator Test", randomId())
@@ -31,7 +28,9 @@ createConnection().then(conn => {
 
 
 
-// !API-Schnittstelle Locations
+// !API-Schnittstelle Locations //
+
+//*Just tests if Server is online
 server.get("/", (req: Request, res: Response) => {
     console.log("Server ist online !")
     res.send("Server ist online !")
@@ -39,8 +38,7 @@ server.get("/", (req: Request, res: Response) => {
 
 
 
-
-
+//? Get Preview
 server.get("/locationPreview", async (req: Request, res: Response) => {
 
     const locationPreview = await getConnection()
@@ -50,7 +48,7 @@ server.get("/locationPreview", async (req: Request, res: Response) => {
 
     res.send(locationPreview)
 })
-
+//?Get FullView
 server.get("/locationDetails", async (req: Request, res: Response) => {
 
     const locationDetails = await getConnection()
@@ -61,7 +59,7 @@ server.get("/locationDetails", async (req: Request, res: Response) => {
 
     res.send(locationDetails)
 })
-
+//?Post Location
 server.post("/postLocation", async (req: Request, res: Response) => {
 
     let uniqueId = randomId()
@@ -154,8 +152,7 @@ server.post("/postLocation", async (req: Request, res: Response) => {
     // res.send(responseBody)
     res.send(responseBody)
 })
-
-
+//?Delete Location
 server.delete("/deleteLocation", async (req: Request, res: Response) => {
 
     if (req.body.id === undefined || req.body.id === null) {
@@ -186,8 +183,7 @@ server.delete("/deleteLocation", async (req: Request, res: Response) => {
     res.send(`Location mit ID ${req.body.id} wurde erfolgreich gelöscht`)
 
 })
-
-
+//?Update Location
 server.put("/updateLocation", async (req: Request, res: Response) => {
 
     if (req.body.id === undefined || req.body.id === null) {
@@ -261,48 +257,71 @@ server.put("/updateLocation", async (req: Request, res: Response) => {
     //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
     res.send(`Location mit ID ${req.body.id} wurde erfolgreich angepasst !`)
 })
+//?Combined Search-Algorythm
+server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
 
-server.post("/searchLocation", async (req: Request, res: Response) => {
-
-    //!SearchParameter
+    //*SearchParameter-Template
     const searchParameter = {
-        place: null,
-        userId: null,
-        title: null,
-        id: null,
-        price: null,
-        date: null
+        username: "preview", //!Preview-Table
+        userId: "preview",
+        title: "preview",
+        id: "preview",
+        price: "preview",
+        date: "preview",
+        sanitary: "details", //!Details-Table joined in Preview-Table
+        power: "details",
+        mobile: "details",
+        waterpipeline: "details",
+        description: "details",
+        squaremeter: "details",
+        persons: "details",
+        minimumConsumption: "details",
+        category: "details",
+        calendar: "details"
     }
 
+    //*Open SearchQuery
+    let searchQuery =
+        getRepository(LocationPreview)
+            .createQueryBuilder("preview")
+            .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+            .where("preview.place like :place", { place: `%${req.body.place}%` })
+
+    //*Filter and transform parameter & booleans (MariaDB doesn´t support real booleans)
     for (let parameter in searchParameter) {
-        if (req.body[parameter] === undefined || req.body[parameter] === null) {
-            searchParameter[parameter] = ""
+        
+        if (req.body[parameter] === "false" || req.body[parameter] === false) {
+           
+            req.body[parameter] = 0;
+           
+            searchQuery.andWhere(`${searchParameter[parameter]}.${parameter} = :${parameter}`, { [parameter]: req.body[parameter] })
+        } else if (req.body[parameter] === "true" || req.body[parameter] === true) {
+          
+            req.body[parameter] = 1
+           
+            searchQuery.andWhere(`${searchParameter[parameter]}.${parameter} = :${parameter}`, { [parameter]: req.body[parameter] })
+        
+        } else if (req.body[parameter] > 0) {
+            
+            searchQuery.andWhere(`${searchParameter[parameter]}.${parameter} <= :${parameter}`, { [parameter]: req.body[parameter] })
+        
+        } else if (req.body[parameter] !== "" && req.body[parameter] !== null && req.body[parameter] !== undefined) {
+            
+            searchQuery.andWhere(`${searchParameter[parameter]}.${parameter} like :${parameter}`, { [parameter]: `%${req.body[parameter]}%` })
+        
         }
-        else {
-            searchParameter[parameter] = req.body[parameter]
-        }
-        console.log(searchParameter)
     }
 
-    const searchResponse = await getConnection()
-        .getRepository(LocationPreview)
-        .createQueryBuilder("preview")
-        .where("preview.place like :place", { place: `%${searchParameter.place}%` })
-        .andWhere("preview.userId like :userId", { userId: `%${searchParameter.userId}%` })
-        .andWhere("preview.title like :title", { title: `%${searchParameter.title}%` })
-        .andWhere("preview.id like :id", { id: `%${searchParameter.id}%` })
-        .andWhere("preview.price like :price", { price: `%${searchParameter.price}%` })
-        .andWhere("preview.date like :date", { date: `%${searchParameter.date}%` })
-        .getMany()
-        .catch((err) => {
-            res.send(err)
-        })
+    const searchResponse = await searchQuery.getMany().catch((err) => {
+        res.send(err)
+    })
 
     res.send(searchResponse)
+
 })
 
+//TODO
 
-//? TODO
 // server.get("/user", async (req: Request, res: Response) => {
 
 //     const userdata = await getConnection()
@@ -368,7 +387,7 @@ server.post("/searchLocation", async (req: Request, res: Response) => {
 
 
 
-// !API-Schnittstelle Locations ENDE
+// !API-Schnittstelle Locations ENDE //
 
 
 
