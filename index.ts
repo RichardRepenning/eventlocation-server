@@ -90,18 +90,14 @@ server.post("/createUser", async (req: Request, res: Response) => {
     }
 
     //*Starts password encryption
-    // app.js
 
     await bcrypt
         .hash(req.body.passwort, saltRounds)
         .then(hash => {
             console.log(`Hash: ${hash}`);
             userdata.passwort = hash
-
-            // Store hash in your password DB.
         })
         .catch(err => console.error(err.message));
-
 
     await getConnection()
         .createQueryBuilder()
@@ -117,7 +113,7 @@ server.post("/createUser", async (req: Request, res: Response) => {
     res.send(`User ${userdata.username} mit der Email ${userdata.email} wurde am ${userdata.registerDate} hinzugefügt`)
 })
 //?User-Login
-server.post("/auth0/login", async (req, res: Response) => {
+server.post("/auth0/login", async (req:Request, res: Response) => {
 
     const user = await getConnection()
         .getRepository(UserData)
@@ -199,11 +195,11 @@ server.get("/locationDetails/id/:id", async (req: Request, res: Response) => {
     res.send(locationDetails)
 })
 //?Post Location
-server.post("/postLocation", jwtTokenUberprufung, async (req, res: Response) => {
+server.post("/postLocation", jwtTokenUberprufung, async (req:Request, res: Response) => {
 
     let uniqueId: string = randomId()
 
-    if (req.user.userId === undefined || req.user.userId === null) {
+    if (req["user"]["userId"] === undefined || req["user"]["userId"] === null) {
         res.send("Es liegt ein Fehler vor, bitte erneut einloggen")
     }
 
@@ -229,7 +225,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req, res: Response) => 
         price: req.body.price,
         date: new Date(),
         username: req.body.username,
-        userId: req.user.userId
+        userId: req["user"]["userId"]
     }
 
     //*Fail-Log erstellen
@@ -281,20 +277,20 @@ server.post("/postLocation", jwtTokenUberprufung, async (req, res: Response) => 
 
     //*Berichterstattung
     const responseBody = {
-        preview: locationPost,
-        details: locationPostDetails,
+        preview: expectedBodyPreview,
+        details: expectedBodyDetails,
         status: `Posted on ${new Date()}`
     }
 
     res.send(responseBody)
 })
 //?Delete Location
-server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req, res: Response) => {
+server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req:Request, res: Response) => {
 
     const locationDeleteCheck = await getConnection()
         .getRepository(LocationPreview)
         .createQueryBuilder("preview")
-        .where("preview.userId = :userId", { userId: req.user.userId })
+        .where("preview.userId = :userId", { userId: req["user"]["userId"] })
         .andWhere("preview.id = :id", { id: req.params.id })
         .getOne()
 
@@ -326,18 +322,14 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req, res: Respo
 
 })
 //?Update Location
-server.put("/updateLocation", jwtTokenUberprufung, async (req, res: Response) => {
+server.put("/updateLocation/:id", jwtTokenUberprufung, async (req:Request, res: Response) => {
 
-    if (req.body.id === undefined || req.body.id === null) {
-        res.send("Bitte eine gültige ID angeben")
-        return
-    }
     //*Validate Location to userId and Id
     const LocationAvailable = await getConnection()
         .getRepository(LocationPreview)
         .createQueryBuilder("preview")
-        .where("preview.userId = :userId", { userId: req.user.userId })
-        .andWhere("preview.id = :id", { id: req.body.id })
+        .where("preview.userId = :userId", { userId: req["user"]["userId"] })
+        .andWhere("preview.id = :id", { id: req.params.id })
         .getOne()
 
     if (!LocationAvailable) {
@@ -385,7 +377,7 @@ server.put("/updateLocation", jwtTokenUberprufung, async (req, res: Response) =>
             .createQueryBuilder()
             .update(LocationPreview)
             .set(queryUpdaterPreview)
-            .where("id=:id", { id: req.body.id })
+            .where("id=:id", { id: req.params.id })
             .execute()
             .catch((err) => {
                 res.send("Beim Updaten ist was schief gelaufen")
@@ -398,7 +390,7 @@ server.put("/updateLocation", jwtTokenUberprufung, async (req, res: Response) =>
             .createQueryBuilder()
             .update(LocationDetails)
             .set(queryUpdaterDetails)
-            .where("id = :id", { id: req.body.id })
+            .where("id = :id", { id: req.params.id })
             .execute()
             .catch((err) => {
                 res.send("Beim Updaten ist was schief gelaufen")
@@ -406,7 +398,7 @@ server.put("/updateLocation", jwtTokenUberprufung, async (req, res: Response) =>
     }
 
     //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
-    res.send(`Location mit ID ${req.body.id} wurde erfolgreich angepasst !`)
+    res.send(`Location mit ID ${req.params.id} wurde erfolgreich angepasst !`)
 })
 //?Combined Search-Algorythm
 server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
@@ -471,13 +463,13 @@ server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
 
 })
 //? Just fetch created Locations from User
-server.get("/userCreatedLocations", jwtTokenUberprufung, async (req, res: Response) => {
+server.get("/userCreatedLocations", jwtTokenUberprufung, async (req:Request, res: Response) => {
 
     const userLocations = await getConnection()
         .getRepository(LocationPreview)
         .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
         .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
-        .where("preview.userId = :userId", { userId: req.user.userId })
+        .where("preview.userId = :userId", { userId: req["user"]["userId"] })
         .getMany()
         .catch((err) => {
             res.send("Fehler")
@@ -486,9 +478,97 @@ server.get("/userCreatedLocations", jwtTokenUberprufung, async (req, res: Respon
     res.send(userLocations)
 
 })
+//? Save Favourite by location ID
+server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, async (req:Request, res: Response) => {
 
+    const favourites = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.favourites")
+        .where("user.id = :id", { id: req["user"]["userId"] })
+        .getOne()
 
-//? TODO ENDE
+    let newArray = []
+
+    if (favourites.favourites === "") {
+        newArray.push(req.params.id)
+    } else {
+        newArray = JSON.parse(favourites.favourites)
+        let duplicateCheck = newArray.some((entry) => {
+            return entry === req.params.id
+        })
+        if (!duplicateCheck) {
+            newArray.push(req.params.id)
+        } else {
+            res.send("Location ist bereits als Favourit gespeichert")
+        }
+    }
+
+    const updateFavourites = await getConnection()
+        .createQueryBuilder()
+        .update(UserData)
+        .set({ favourites: JSON.stringify(newArray) })
+        .where("id = :id", { id: req["user"]["userId"]})
+        .execute()
+
+    res.send(`Zu Favouriten hinzugefügt: ${newArray}`)
+})
+//?Just return user favourites
+server.get("/userFavourites", jwtTokenUberprufung, async (req:Request, res: Response) => {
+
+    const listOfFavourites = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.favourites")
+        .where("user.id = :id", { id: req["user"]["userId"] })
+        .getOne()
+        .catch((err) => {
+            res.send(err)
+        })
+
+    let favourites;
+    
+    if (listOfFavourites["favourites"] !== "") {
+        favourites = JSON.parse(listOfFavourites["favourites"])
+    } else {
+        res.send("Keine Favouriten gespeichert")
+    }
+
+    const locationDetails = await getConnection()
+        .getRepository(LocationPreview)
+        .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+        .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+        .where("preview.id IN (:...id)", { id: favourites })
+        .getMany()
+    
+    res.send(locationDetails)
+
+})
+//? Deletes user favourite
+server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
+    
+    const listOfUserFavourites = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.favourites")
+        .where("user.id = :id", { id: req["user"]["userId"] })
+        .getOne()
+    
+    const newListOfUserFavourites = JSON.parse(listOfUserFavourites["favourites"]).filter((entry) => {
+        return entry !== req.params.id
+    })
+
+    const updateFavourites = await getConnection()
+        .createQueryBuilder()
+        .update(UserData)
+        .set({ favourites: JSON.stringify(newListOfUserFavourites) })
+        .where("id = :id", { id: req["user"]["userId"]  })
+        .execute()
+    
+    res.send(newListOfUserFavourites)
+
+})
+
 
 
 // !API-Schnittstelle Locations ENDE //

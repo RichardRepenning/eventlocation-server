@@ -109,18 +109,15 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
                     registerDate: new Date()
                 };
                 //*Starts password encryption
-                // app.js
                 return [4 /*yield*/, bcrypt
                         .hash(req.body.passwort, saltRounds)
                         .then(function (hash) {
                         console.log("Hash: " + hash);
                         userdata.passwort = hash;
-                        // Store hash in your password DB.
                     })
                         .catch(function (err) { return console.error(err.message); })];
             case 2:
                 //*Starts password encryption
-                // app.js
                 _a.sent();
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
@@ -252,7 +249,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
         switch (_a.label) {
             case 0:
                 uniqueId = randomGenerator_1.default();
-                if (req.user.userId === undefined || req.user.userId === null) {
+                if (req["user"]["userId"] === undefined || req["user"]["userId"] === null) {
                     res.send("Es liegt ein Fehler vor, bitte erneut einloggen");
                 }
                 expectedBodyDetails = {
@@ -276,7 +273,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                     price: req.body.price,
                     date: new Date(),
                     username: req.body.username,
-                    userId: req.user.userId
+                    userId: req["user"]["userId"]
                 };
                 failResponse = [];
                 for (item in expectedBodyDetails) {
@@ -326,8 +323,8 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
             case 2:
                 locationPost = _a.sent();
                 responseBody = {
-                    preview: locationPost,
-                    details: locationPostDetails,
+                    preview: expectedBodyPreview,
+                    details: expectedBodyDetails,
                     status: "Posted on " + new Date()
                 };
                 res.send(responseBody);
@@ -343,7 +340,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, function (req, res) { 
             case 0: return [4 /*yield*/, typeorm_2.getConnection()
                     .getRepository(overview_1.LocationPreview)
                     .createQueryBuilder("preview")
-                    .where("preview.userId = :userId", { userId: req.user.userId })
+                    .where("preview.userId = :userId", { userId: req["user"]["userId"] })
                     .andWhere("preview.id = :id", { id: req.params.id })
                     .getOne()];
             case 1:
@@ -379,21 +376,16 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, function (req, res) { 
     });
 }); });
 //?Update Location
-server.put("/updateLocation", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+server.put("/updateLocation/:id", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var LocationAvailable, expectedBodyDetails, expectedBodyPreview, queryUpdaterDetails, queryUpdaterPreview, item;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0:
-                if (req.body.id === undefined || req.body.id === null) {
-                    res.send("Bitte eine gültige ID angeben");
-                    return [2 /*return*/];
-                }
-                return [4 /*yield*/, typeorm_2.getConnection()
-                        .getRepository(overview_1.LocationPreview)
-                        .createQueryBuilder("preview")
-                        .where("preview.userId = :userId", { userId: req.user.userId })
-                        .andWhere("preview.id = :id", { id: req.body.id })
-                        .getOne()];
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(overview_1.LocationPreview)
+                    .createQueryBuilder("preview")
+                    .where("preview.userId = :userId", { userId: req["user"]["userId"] })
+                    .andWhere("preview.id = :id", { id: req.params.id })
+                    .getOne()];
             case 1:
                 LocationAvailable = _a.sent();
                 if (!LocationAvailable) {
@@ -433,7 +425,7 @@ server.put("/updateLocation", jwtTokenUberprufung, function (req, res) { return 
                         .createQueryBuilder()
                         .update(overview_1.LocationPreview)
                         .set(queryUpdaterPreview)
-                        .where("id=:id", { id: req.body.id })
+                        .where("id=:id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
                         res.send("Beim Updaten ist was schief gelaufen");
@@ -447,7 +439,7 @@ server.put("/updateLocation", jwtTokenUberprufung, function (req, res) { return 
                         .createQueryBuilder()
                         .update(details_1.LocationDetails)
                         .set(queryUpdaterDetails)
-                        .where("id = :id", { id: req.body.id })
+                        .where("id = :id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
                         res.send("Beim Updaten ist was schief gelaufen");
@@ -457,7 +449,7 @@ server.put("/updateLocation", jwtTokenUberprufung, function (req, res) { return 
                 _a.label = 5;
             case 5:
                 //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
-                res.send("Location mit ID " + req.body.id + " wurde erfolgreich angepasst !");
+                res.send("Location mit ID " + req.params.id + " wurde erfolgreich angepasst !");
                 return [2 /*return*/];
         }
     });
@@ -527,7 +519,7 @@ server.get("/userCreatedLocations", jwtTokenUberprufung, function (req, res) { r
                     .getRepository(overview_1.LocationPreview)
                     .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
                     .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
-                    .where("preview.userId = :userId", { userId: req.user.userId })
+                    .where("preview.userId = :userId", { userId: req["user"]["userId"] })
                     .getMany()
                     .catch(function (err) {
                     res.send("Fehler");
@@ -539,7 +531,112 @@ server.get("/userCreatedLocations", jwtTokenUberprufung, function (req, res) { r
         }
     });
 }); });
-//? TODO ENDE
+//? Save Favourite by location ID
+server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var favourites, newArray, duplicateCheck, updateFavourites;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .select("user.favourites")
+                    .where("user.id = :id", { id: req["user"]["userId"] })
+                    .getOne()];
+            case 1:
+                favourites = _a.sent();
+                newArray = [];
+                if (favourites.favourites === "") {
+                    newArray.push(req.params.id);
+                }
+                else {
+                    newArray = JSON.parse(favourites.favourites);
+                    duplicateCheck = newArray.some(function (entry) {
+                        return entry === req.params.id;
+                    });
+                    if (!duplicateCheck) {
+                        newArray.push(req.params.id);
+                    }
+                    else {
+                        res.send("Location ist bereits als Favourit gespeichert");
+                    }
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .update(userdata_1.UserData)
+                        .set({ favourites: JSON.stringify(newArray) })
+                        .where("id = :id", { id: req["user"]["userId"] })
+                        .execute()];
+            case 2:
+                updateFavourites = _a.sent();
+                res.send("Zu Favouriten hinzugef\u00FCgt: " + newArray);
+                return [2 /*return*/];
+        }
+    });
+}); });
+//?Just return user favourites
+server.get("/userFavourites", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var listOfFavourites, favourites, locationDetails;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .select("user.favourites")
+                    .where("user.id = :id", { id: req["user"]["userId"] })
+                    .getOne()
+                    .catch(function (err) {
+                    res.send(err);
+                })];
+            case 1:
+                listOfFavourites = _a.sent();
+                if (listOfFavourites["favourites"] !== "") {
+                    favourites = JSON.parse(listOfFavourites["favourites"]);
+                }
+                else {
+                    res.send("Keine Favouriten gespeichert");
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(overview_1.LocationPreview)
+                        .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+                        .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+                        .where("preview.id IN (:...id)", { id: favourites })
+                        .getMany()];
+            case 2:
+                locationDetails = _a.sent();
+                res.send(locationDetails);
+                return [2 /*return*/];
+        }
+    });
+}); });
+//? Deletes user favourite
+server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var listOfUserFavourites, newListOfUserFavourites, updateFavourites;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .select("user.favourites")
+                    .where("user.id = :id", { id: req["user"]["userId"] })
+                    .getOne()];
+            case 1:
+                listOfUserFavourites = _a.sent();
+                newListOfUserFavourites = JSON.parse(listOfUserFavourites["favourites"]).filter(function (entry) {
+                    return entry !== req.params.id;
+                });
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .update(userdata_1.UserData)
+                        .set({ favourites: JSON.stringify(newListOfUserFavourites) })
+                        .where("id = :id", { id: req["user"]["userId"] })
+                        .execute()];
+            case 2:
+                updateFavourites = _a.sent();
+                res.send(newListOfUserFavourites);
+                return [2 /*return*/];
+        }
+    });
+}); });
 // !API-Schnittstelle Locations ENDE //
 server.listen(port, function () {
     console.log("event-server läuft");
