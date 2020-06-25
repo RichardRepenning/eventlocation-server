@@ -23,11 +23,31 @@ var UserData = /** @class */ (function () {
         __metadata("design:type", String)
     ], UserData.prototype, "username", void 0);
     __decorate([
+        typeorm_1.Column({ default: "" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "vorname", void 0);
+    __decorate([
+        typeorm_1.Column({ default: "" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "nachname", void 0);
+    __decorate([
+        typeorm_1.Column({ default: "" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "strasse", void 0);
+    __decorate([
+        typeorm_1.Column({ default: 0 }),
+        __metadata("design:type", Number)
+    ], UserData.prototype, "plz", void 0);
+    __decorate([
+        typeorm_1.Column({ default: "" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "ort", void 0);
+    __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
     ], UserData.prototype, "passwort", void 0);
     __decorate([
-        typeorm_1.Column(),
+        typeorm_1.Column({ unique: true }),
         __metadata("design:type", String)
     ], UserData.prototype, "email", void 0);
     __decorate([
@@ -35,21 +55,25 @@ var UserData = /** @class */ (function () {
         __metadata("design:type", String)
     ], UserData.prototype, "status", void 0);
     __decorate([
-        typeorm_1.Column(),
+        typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
     ], UserData.prototype, "profilePicture", void 0);
     __decorate([
-        typeorm_1.Column(),
+        typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
     ], UserData.prototype, "businessLetter", void 0);
     __decorate([
-        typeorm_1.Column(),
+        typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
     ], UserData.prototype, "favourites", void 0);
     __decorate([
-        typeorm_1.Column(),
+        typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
-    ], UserData.prototype, "ownLoacations", void 0);
+    ], UserData.prototype, "ownLocations", void 0);
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", Date)
+    ], UserData.prototype, "registerDate", void 0);
     UserData = __decorate([
         typeorm_1.Entity()
     ], UserData);

@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryColumn, ManyToMany, JoinTable, OneToOne, JoinColumn, OneToMany } from "typeorm";
-import { LocationPreview } from './overview'
+import { Entity, Column, PrimaryColumn } from "typeorm";
 
 @Entity()
 export class UserData {
@@ -8,18 +7,30 @@ export class UserData {
     id: string;
     @Column()
     username: string;
+    @Column({ default: "" })
+    vorname: string;
+    @Column({ default: "" })
+    nachname: string;
+    @Column({ default: "" })
+    strasse: string;
+    @Column({ default: 0 })
+    plz: number;
+    @Column({ default: "" })
+    ort: string;
     @Column()
     passwort: string;
-    @Column()
+    @Column({ unique: true })
     email: string;
     @Column()
     status: string; //defines private or business
-    @Column()
+    @Column({ default: "" })
     profilePicture: string;
-    @Column()
+    @Column({ default: "" })
     businessLetter: string; //Gewerbeschein
-    @Column()
+    @Column({ default: "" })
     favourites: string;
+    @Column({ default: "" })
+    ownLocations: string;
     @Column()
-    ownLoacations: string;
+    registerDate: Date
 }

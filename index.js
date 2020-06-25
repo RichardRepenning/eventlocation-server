@@ -40,6 +40,7 @@ var typeorm_1 = require("typeorm");
 var typeorm_2 = require("typeorm");
 var details_1 = require("./tables/details");
 var overview_1 = require("./tables/overview");
+var userdata_1 = require("./tables/userdata");
 require("reflect-metadata");
 var randomGenerator_1 = require("./randomGenerator");
 var express = require("express");
@@ -50,26 +51,121 @@ var port = process.env.PORT || 3000;
 //!USE CORS for internal testing purposes
 server.use(cors());
 server.use(bodyParser.json());
+var jwt = require('jsonwebtoken'); //?Implements JWT Service
+var tokensSecret = "HeyItsMeMario987654321*/&!§$%%&&()=?";
 //!Create TypeORM-Connection and Table(if not exists)
 typeorm_1.createConnection().then(function (conn) {
     console.log("Datenbank-Connection steht");
     console.log("randomId-Generator Test", randomGenerator_1.default());
 });
+//!JWT Validation
+var jwtTokenUberprufung = function (req, res, next) {
+    var authent = req.headers.authorization;
+    if (authent) {
+        var jwtTokenAusHeader = authent.split(' ')[1];
+        jwt.verify(jwtTokenAusHeader, tokensSecret, function (err, user) {
+            if (err) {
+                return res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
+            }
+            console.log("user", user);
+            req.user = user;
+            next();
+        });
+    }
+    else {
+        res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
+    }
+};
 // !API-Schnittstelle Locations //
-//*Just tests if Server is online
+//?Just tests if Server is online
 server.get("/", function (req, res) {
     console.log("Server ist online !");
     res.send("Server ist online !");
 });
-//? Get Preview
-server.get("/locationPreview", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var locationPreview;
+//?Register new User
+server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var checkExistingUser, userdata;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_2.getConnection()
-                    .getRepository(overview_1.LocationPreview)
-                    .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
-                    .getMany()];
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .where("user.email = :email", { email: req.body.email })
+                    .getOne()];
+            case 1:
+                checkExistingUser = _a.sent();
+                if (checkExistingUser) {
+                    res.send("Fehler, email-Adresse schon vorhanden, bitte wähle eine andere oder setze dein Passwort zurück");
+                }
+                userdata = {
+                    id: "user_id_" + randomGenerator_1.default(),
+                    username: req.body.username,
+                    passwort: req.body.passwort,
+                    email: req.body.email,
+                    status: req.body.status,
+                    registerDate: new Date()
+                };
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .insert()
+                        .into(userdata_1.UserData)
+                        .values([
+                        userdata
+                    ])
+                        .execute()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
+            case 2:
+                _a.sent();
+                res.send("User " + userdata.username + " mit der Email " + userdata.email + " wurde am " + userdata.registerDate + " hinzugef\u00FCgt");
+                return [2 /*return*/];
+        }
+    });
+}); });
+//?User-Login
+server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var user, sessionToken;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .where("user.email = :email", { email: req.body.email })
+                    .getOne()];
+            case 1:
+                user = _a.sent();
+                if (user) {
+                    if (req.body.passwort === user.passwort) {
+                        sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret);
+                        res.json({ sessionToken: sessionToken });
+                    }
+                    else {
+                        res.send("Benutzername oder Passwort falsch");
+                    }
+                }
+                else {
+                    res.send("Benutzername oder Passwort falsch");
+                }
+                return [2 /*return*/];
+        }
+    });
+}); });
+//? Get Preview
+server.get("/locationPreview/:limit", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var anzahl, locationPreview;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                anzahl = 20;
+                if (req.params.limit !== undefined || req.params.limit !== null) {
+                    anzahl = Number(req.params.limit);
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(overview_1.LocationPreview)
+                        .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+                        .limit(anzahl)
+                        .getMany()];
             case 1:
                 locationPreview = _a.sent();
                 res.send(locationPreview);
@@ -78,15 +174,43 @@ server.get("/locationPreview", function (req, res) { return __awaiter(void 0, vo
     });
 }); });
 //?Get FullView
-server.get("/locationDetails", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var locationDetails;
+server.get("/locationDetails/:limit", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var anzahl, locationDetails;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, typeorm_2.getConnection()
-                    .getRepository(overview_1.LocationPreview)
-                    .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
-                    .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
-                    .getMany()];
+            case 0:
+                anzahl = 20;
+                if (req.params.limit !== undefined || req.params.limit !== null) {
+                    anzahl = Number(req.params.limit);
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(overview_1.LocationPreview)
+                        .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+                        .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+                        .limit(anzahl)
+                        .getMany()];
+            case 1:
+                locationDetails = _a.sent();
+                res.send(locationDetails);
+                return [2 /*return*/];
+        }
+    });
+}); });
+//?Get Location via ID
+server.get("/locationDetails/id/:id", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var locationId, locationDetails;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (req.params.id !== undefined || req.params.id !== null) {
+                    locationId = req.params.id;
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(overview_1.LocationPreview)
+                        .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+                        .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+                        .where("preview.id = :id", { id: locationId })
+                        .getOne()];
             case 1:
                 locationDetails = _a.sent();
                 res.send(locationDetails);
@@ -95,14 +219,14 @@ server.get("/locationDetails", function (req, res) { return __awaiter(void 0, vo
     });
 }); });
 //?Post Location
-server.post("/postLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var uniqueId, userId, expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
+server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var uniqueId, expectedBodyDetails, expectedBodyPreview, failResponse, item, item, locationPostDetails, locationPost, responseBody;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 uniqueId = randomGenerator_1.default();
-                if (req.body.userId === undefined || req.body.userId === null) {
-                    userId = "Gast";
+                if (req.user.userId === undefined || req.user.userId === null) {
+                    res.send("Es liegt ein Fehler vor, bitte erneut einloggen");
                 }
                 expectedBodyDetails = {
                     id: uniqueId,
@@ -125,7 +249,7 @@ server.post("/postLocation", function (req, res) { return __awaiter(void 0, void
                     price: req.body.price,
                     date: new Date(),
                     username: req.body.username,
-                    userId: userId
+                    userId: req.user.userId
                 };
                 failResponse = [];
                 for (item in expectedBodyDetails) {
@@ -179,51 +303,57 @@ server.post("/postLocation", function (req, res) { return __awaiter(void 0, void
                     details: locationPostDetails,
                     status: "Posted on " + new Date()
                 };
-                // res.send(responseBody)
                 res.send(responseBody);
                 return [2 /*return*/];
         }
     });
 }); });
 //?Delete Location
-server.delete("/deleteLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+server.delete("/deleteLocation/:id", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var locationDeleteCheck;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0:
-                if (req.body.id === undefined || req.body.id === null) {
-                    res.send("Bitte eine gültige ID angeben");
-                    return [2 /*return*/];
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(overview_1.LocationPreview)
+                    .createQueryBuilder("preview")
+                    .where("preview.userId = :userId", { userId: req.user.userId })
+                    .andWhere("preview.id = :id", { id: req.params.id })
+                    .getOne()];
+            case 1:
+                locationDeleteCheck = _a.sent();
+                if (!locationDeleteCheck) {
+                    res.send("Fehler, Anzeige konnte nicht gelöscht werden. Bitte überprüfe deinen Login");
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
                         .delete()
                         .from(overview_1.LocationPreview)
-                        .where("id = :id", { id: req.body.id })
-                        .execute()
-                        .catch(function (err) {
-                        res.send(err);
-                    })];
-            case 1:
-                _a.sent();
-                return [4 /*yield*/, typeorm_2.getConnection()
-                        .createQueryBuilder()
-                        .delete()
-                        .from(details_1.LocationDetails)
-                        .where("id = :id", { id: req.body.id })
+                        .where("id = :id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
                         res.send(err);
                     })];
             case 2:
                 _a.sent();
-                res.send("Location mit ID " + req.body.id + " wurde erfolgreich gel\u00F6scht");
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .delete()
+                        .from(details_1.LocationDetails)
+                        .where("id = :id", { id: req.params.id })
+                        .execute()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
+            case 3:
+                _a.sent();
+                res.send("Location mit ID " + req.params.id + " wurde erfolgreich gel\u00F6scht");
                 return [2 /*return*/];
         }
     });
 }); });
 //?Update Location
-server.put("/updateLocation", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var expectedBodyDetails, expectedBodyPreview, queryUpdaterDetails, queryUpdaterPreview, item;
+server.put("/updateLocation", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var LocationAvailable, expectedBodyDetails, expectedBodyPreview, queryUpdaterDetails, queryUpdaterPreview, item;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -231,8 +361,19 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
                     res.send("Bitte eine gültige ID angeben");
                     return [2 /*return*/];
                 }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(overview_1.LocationPreview)
+                        .createQueryBuilder("preview")
+                        .where("preview.userId = :userId", { userId: req.user.userId })
+                        .andWhere("preview.id = :id", { id: req.body.id })
+                        .getOne()];
+            case 1:
+                LocationAvailable = _a.sent();
+                if (!LocationAvailable) {
+                    res.send("Fehler, anzeige nicht vorhanden");
+                    return [2 /*return*/];
+                }
                 expectedBodyDetails = {
-                    // id: null,
                     description: null,
                     squaremeter: null,
                     persons: null,
@@ -245,7 +386,6 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
                     calendar: null
                 };
                 expectedBodyPreview = {
-                    // id: null,
                     title: null,
                     bild: null,
                     place: null,
@@ -261,7 +401,7 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
                         queryUpdaterPreview[item] = req.body[item];
                     }
                 }
-                if (!(Object.keys(queryUpdaterPreview).length !== 0)) return [3 /*break*/, 2];
+                if (!(Object.keys(queryUpdaterPreview).length !== 0)) return [3 /*break*/, 3];
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
                         .update(overview_1.LocationPreview)
@@ -271,11 +411,11 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
                         .catch(function (err) {
                         res.send("Beim Updaten ist was schief gelaufen");
                     })];
-            case 1:
-                _a.sent();
-                _a.label = 2;
             case 2:
-                if (!(Object.keys(queryUpdaterDetails).length !== 0)) return [3 /*break*/, 4];
+                _a.sent();
+                _a.label = 3;
+            case 3:
+                if (!(Object.keys(queryUpdaterDetails).length !== 0)) return [3 /*break*/, 5];
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
                         .update(details_1.LocationDetails)
@@ -285,10 +425,10 @@ server.put("/updateLocation", function (req, res) { return __awaiter(void 0, voi
                         .catch(function (err) {
                         res.send("Beim Updaten ist was schief gelaufen");
                     })];
-            case 3:
-                _a.sent();
-                _a.label = 4;
             case 4:
+                _a.sent();
+                _a.label = 5;
+            case 5:
                 //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
                 res.send("Location mit ID " + req.body.id + " wurde erfolgreich angepasst !");
                 return [2 /*return*/];
@@ -372,33 +512,6 @@ server.post("/searchLocationAdvanced", function (req, res) { return __awaiter(vo
 //             res.send(err)
 //         })
 //     res.send(userdata)
-// })
-// server.post("/createUser", async (req: Request, res: Response) => {
-//     let userId
-//     if (req.body.id === undefined || req.body.id === null) {
-//         userId = "Gast"
-//     }
-//     const userdata = {
-//         id: userId, //User-ID default "Gast"
-//         name: req.body.name,
-//         passwort: req.body.passwort,
-//         email: req.body.email,
-//         status: req.body.status,
-//         profilePicture: req.body.profilePicture,
-//         businessLetter: req.body.businessLetter,
-//         favourites: ""
-//     }
-//     await getConnection()
-//         .createQueryBuilder()
-//         .insert()
-//         .into(UserData)
-//         .values([
-//             userdata
-//         ])
-//         .execute()
-//         .catch((err) => {
-//             res.send(err)
-//         })
 // })
 //? TODO ENDE
 // !API-Schnittstelle Locations ENDE //
