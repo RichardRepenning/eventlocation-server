@@ -6,28 +6,29 @@ import { LocationPreview } from './tables/overview'
 import { UserData } from './tables/userdata'
 import "reflect-metadata";
 import randomId from './randomGenerator'
-import { nextTick } from "process";
-
 
 const express = require("express")
 const bodyParser = require("body-parser")
 const cors = require("cors")
 const server = express()
 const port = process.env.PORT || 3000
-const bcrypt = require("bcrypt"); //!For password encryption
-const saltRounds = 10; //level of Password encryption
 
 //!USE CORS for internal testing purposes
 server.use(cors())
 server.use(bodyParser.json())
+
+//!USE jwt and bcrypt for user authentication
 const jwt = require('jsonwebtoken'); //?Implements JWT Service
 const tokensSecret = "HeyItsMeMario987654321*/&!§$%%&&()=?"
+const bcrypt = require("bcrypt"); //*For password encryption
+const saltRounds = 10; //*level of Password salting
 
 //!Create TypeORM-Connection and Table(if not exists)
 createConnection().then(conn => {
     console.log("Datenbank-Connection steht")
     console.log("randomId-Generator Test", randomId())
 })
+
 //!JWT Validation
 const jwtTokenUberprufung = (req, res: Response, next) => {
 
@@ -48,25 +49,7 @@ const jwtTokenUberprufung = (req, res: Response, next) => {
     }
 }
 
-
-
-
-
-const plainTextPassword1 = "DFGh5546*%^__90";
-
-
-
-
-
-
-
-// !API-Schnittstelle Locations //
-
-//?Just tests if Server is online
-server.get("/", (req: Request, res: Response) => {
-    console.log("Server ist online !")
-    res.send("Server ist online !")
-})
+// !API-Schnittstelle User //
 //?Register new User
 server.post("/createUser", async (req: Request, res: Response) => {
 
@@ -113,7 +96,7 @@ server.post("/createUser", async (req: Request, res: Response) => {
     res.send(`User ${userdata.username} mit der Email ${userdata.email} wurde am ${userdata.registerDate} hinzugefügt`)
 })
 //?User-Login
-server.post("/auth0/login", async (req:Request, res: Response) => {
+server.post("/auth0/login", async (req: Request, res: Response) => {
 
     const user = await getConnection()
         .getRepository(UserData)
@@ -143,6 +126,16 @@ server.post("/auth0/login", async (req:Request, res: Response) => {
         res.send("Benutzername oder Passwort falsch | User nicht vorhanden")
     }
 
+})
+// !API-Schnittstelle User END//
+
+
+// !API-Schnittstelle Locations //
+
+//?Just tests if Server is online
+server.get("/", (req: Request, res: Response) => {
+    console.log("Server ist online !")
+    res.send("Server ist online !")
 })
 //? Get Preview
 server.get("/locationPreview/:limit", async (req: Request, res: Response) => {
@@ -544,7 +537,7 @@ server.get("/userFavourites", jwtTokenUberprufung, async (req:Request, res: Resp
     res.send(locationDetails)
 
 })
-//? Deletes user favourite
+//? Deletes users favourite
 server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
     
     const listOfUserFavourites = await getConnection()
@@ -569,9 +562,8 @@ server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, async (req: Reque
 
 })
 
-
-
 // !API-Schnittstelle Locations ENDE //
+
 
 
 server.listen(port, function () {
