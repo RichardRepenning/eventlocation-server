@@ -30,7 +30,7 @@ createConnection().then(conn => {
 })
 
 //!JWT Validation
-const jwtTokenUberprufung = (req, res: Response, next) => {
+const jwtTokenUberprufung = (req:Request, res: Response, next) => {
 
     const authent = req.headers.authorization
 
@@ -41,7 +41,7 @@ const jwtTokenUberprufung = (req, res: Response, next) => {
                 return res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt")
             }
             console.log("user", user)
-            req.user = user;
+            req["user"] = user;
             next();
         });
     } else {
@@ -97,6 +97,10 @@ server.post("/createUser", async (req: Request, res: Response) => {
 })
 //?User-Login
 server.post("/auth0/login", async (req: Request, res: Response) => {
+
+    if (req.body.email === undefined || req.body.email === "") {
+        res.send("Bitte eine gültige Email angeben")
+    }
 
     const user = await getConnection()
         .getRepository(UserData)

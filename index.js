@@ -48,13 +48,14 @@ var bodyParser = require("body-parser");
 var cors = require("cors");
 var server = express();
 var port = process.env.PORT || 3000;
-var bcrypt = require("bcrypt"); //!For password encryption
-var saltRounds = 10; //level of Password encryption
 //!USE CORS for internal testing purposes
 server.use(cors());
 server.use(bodyParser.json());
+//!USE jwt and bcrypt for user authentication
 var jwt = require('jsonwebtoken'); //?Implements JWT Service
 var tokensSecret = "HeyItsMeMario987654321*/&!§$%%&&()=?";
+var bcrypt = require("bcrypt"); //*For password encryption
+var saltRounds = 10; //*level of Password salting
 //!Create TypeORM-Connection and Table(if not exists)
 typeorm_1.createConnection().then(function (conn) {
     console.log("Datenbank-Connection steht");
@@ -70,7 +71,7 @@ var jwtTokenUberprufung = function (req, res, next) {
                 return res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
             }
             console.log("user", user);
-            req.user = user;
+            req["user"] = user;
             next();
         });
     }
@@ -78,13 +79,7 @@ var jwtTokenUberprufung = function (req, res, next) {
         res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
     }
 };
-var plainTextPassword1 = "DFGh5546*%^__90";
-// !API-Schnittstelle Locations //
-//?Just tests if Server is online
-server.get("/", function (req, res) {
-    console.log("Server ist online !");
-    res.send("Server ist online !");
-});
+// !API-Schnittstelle User //
 //?Register new User
 server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var checkExistingUser, userdata;
@@ -142,11 +137,15 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
     var user;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, typeorm_2.getConnection()
-                    .getRepository(userdata_1.UserData)
-                    .createQueryBuilder("user")
-                    .where("user.email = :email", { email: req.body.email })
-                    .getOne()];
+            case 0:
+                if (req.body.email === undefined || req.body.email === "") {
+                    res.send("Bitte eine gültige Email angeben");
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(userdata_1.UserData)
+                        .createQueryBuilder("user")
+                        .where("user.email = :email", { email: req.body.email })
+                        .getOne()];
             case 1:
                 user = _a.sent();
                 if (user) {
@@ -175,6 +174,13 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
         }
     });
 }); });
+// !API-Schnittstelle User END//
+// !API-Schnittstelle Locations //
+//?Just tests if Server is online
+server.get("/", function (req, res) {
+    console.log("Server ist online !");
+    res.send("Server ist online !");
+});
 //? Get Preview
 server.get("/locationPreview/:limit", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var anzahl, locationPreview;
@@ -608,7 +614,7 @@ server.get("/userFavourites", jwtTokenUberprufung, function (req, res) { return 
         }
     });
 }); });
-//? Deletes user favourite
+//? Deletes users favourite
 server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var listOfUserFavourites, newListOfUserFavourites, updateFavourites;
     return __generator(this, function (_a) {
