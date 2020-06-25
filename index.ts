@@ -14,6 +14,8 @@ const bodyParser = require("body-parser")
 const cors = require("cors")
 const server = express()
 const port = process.env.PORT || 3000
+const bcrypt = require("bcrypt"); //!For password encryption
+const saltRounds = 10; //level of Password encryption
 
 //!USE CORS for internal testing purposes
 server.use(cors())
@@ -49,6 +51,15 @@ const jwtTokenUberprufung = (req, res: Response, next) => {
 
 
 
+
+const plainTextPassword1 = "DFGh5546*%^__90";
+
+
+
+
+
+
+
 // !API-Schnittstelle Locations //
 
 //?Just tests if Server is online
@@ -72,11 +83,25 @@ server.post("/createUser", async (req: Request, res: Response) => {
     const userdata = {
         id: `user_id_${randomId()}`, //User-ID default "Gast"
         username: req.body.username,
-        passwort: req.body.passwort,
+        passwort: null,
         email: req.body.email,
         status: req.body.status,
         registerDate: new Date()
     }
+
+    //*Starts password encryption
+    // app.js
+
+    await bcrypt
+        .hash(req.body.passwort, saltRounds)
+        .then(hash => {
+            console.log(`Hash: ${hash}`);
+            userdata.passwort = hash
+
+            // Store hash in your password DB.
+        })
+        .catch(err => console.error(err.message));
+
 
     await getConnection()
         .createQueryBuilder()
@@ -92,7 +117,7 @@ server.post("/createUser", async (req: Request, res: Response) => {
     res.send(`User ${userdata.username} mit der Email ${userdata.email} wurde am ${userdata.registerDate} hinzugefügt`)
 })
 //?User-Login
-server.post("/auth0/login", async (req: Request, res: Response) => {
+server.post("/auth0/login", async (req, res: Response) => {
 
     const user = await getConnection()
         .getRepository(UserData)
@@ -100,16 +125,28 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
         .where("user.email = :email", { email: req.body.email })
         .getOne()
 
+
     if (user) {
-        if (req.body.passwort === user.passwort) {
-            const sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret)
-            res.json({ sessionToken })
-        } else {
-            res.send("Benutzername oder Passwort falsch")
-        }
+        bcrypt
+            .compare(req.body.passwort, user.passwort)
+            .then((ress) => {
+                console.log("user", user)
+                console.log("ress", ress)
+                if (ress) {
+                    const sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret)
+                    res.json({ sessionToken })
+                } else {
+                    res.send("Benutzername oder Passwort falsch | User nicht vorhanden")
+                }
+            })
+            .catch((err) => {
+                res.send(err.message)
+                console.error(err.message)
+            })
     } else {
-        res.send("Benutzername oder Passwort falsch")
+        res.send("Benutzername oder Passwort falsch | User nicht vorhanden")
     }
+
 })
 //? Get Preview
 server.get("/locationPreview/:limit", async (req: Request, res: Response) => {
@@ -260,7 +297,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req, res: Respo
         .where("preview.userId = :userId", { userId: req.user.userId })
         .andWhere("preview.id = :id", { id: req.params.id })
         .getOne()
-    
+
     if (!locationDeleteCheck) {
         res.send("Fehler, Anzeige konnte nicht gelöscht werden. Bitte überprüfe deinen Login")
     }
@@ -433,52 +470,28 @@ server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
     res.send(searchResponse)
 
 })
+//? Just fetch created Locations from User
+server.get("/userCreatedLocations", jwtTokenUberprufung, async (req, res: Response) => {
 
+    const userLocations = await getConnection()
+        .getRepository(LocationPreview)
+        .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+        .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+        .where("preview.userId = :userId", { userId: req.user.userId })
+        .getMany()
+        .catch((err) => {
+            res.send("Fehler")
+        })
 
-//TODO
+    res.send(userLocations)
 
-// server.get("/user", async (req: Request, res: Response) => {
-
-//     const userdata = await getConnection()
-//         .getRepository(UserData)
-//         .createQueryBuilder("userdata")
-//         .getMany()
-//         .catch((err) => {
-//             res.send(err)
-//         })
-
-//     res.send(userdata)
-
-// })
-
-// server.get("/userLocations", async (req: Request, res: Response) => {
-
-//     const userdata = await getConnection()
-//         .getRepository(UserData)
-//         .createQueryBuilder("userdata") //*Alias für Einträge in LocationPreview
-//         .innerJoinAndSelect("userdata.ownLocations", "preview") //*Alias für Einträge in LocationPreview & LocationDetails
-//         .getMany()
-//         .catch((err) => {
-//             res.send(err)
-//         })
-
-//     res.send(userdata)
-
-// })
-
+})
 
 
 //? TODO ENDE
 
 
-
 // !API-Schnittstelle Locations ENDE //
-
-
-
-
-
-
 
 
 server.listen(port, function () {

@@ -48,6 +48,8 @@ var bodyParser = require("body-parser");
 var cors = require("cors");
 var server = express();
 var port = process.env.PORT || 3000;
+var bcrypt = require("bcrypt"); //!For password encryption
+var saltRounds = 10; //level of Password encryption
 //!USE CORS for internal testing purposes
 server.use(cors());
 server.use(bodyParser.json());
@@ -76,6 +78,7 @@ var jwtTokenUberprufung = function (req, res, next) {
         res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
     }
 };
+var plainTextPassword1 = "DFGh5546*%^__90";
 // !API-Schnittstelle Locations //
 //?Just tests if Server is online
 server.get("/", function (req, res) {
@@ -100,11 +103,25 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
                 userdata = {
                     id: "user_id_" + randomGenerator_1.default(),
                     username: req.body.username,
-                    passwort: req.body.passwort,
+                    passwort: null,
                     email: req.body.email,
                     status: req.body.status,
                     registerDate: new Date()
                 };
+                //*Starts password encryption
+                // app.js
+                return [4 /*yield*/, bcrypt
+                        .hash(req.body.passwort, saltRounds)
+                        .then(function (hash) {
+                        console.log("Hash: " + hash);
+                        userdata.passwort = hash;
+                        // Store hash in your password DB.
+                    })
+                        .catch(function (err) { return console.error(err.message); })];
+            case 2:
+                //*Starts password encryption
+                // app.js
+                _a.sent();
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
                         .insert()
@@ -116,7 +133,7 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
                         .catch(function (err) {
                         res.send(err);
                     })];
-            case 2:
+            case 3:
                 _a.sent();
                 res.send("User " + userdata.username + " mit der Email " + userdata.email + " wurde am " + userdata.registerDate + " hinzugef\u00FCgt");
                 return [2 /*return*/];
@@ -125,7 +142,7 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
 }); });
 //?User-Login
 server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var user, sessionToken;
+    var user;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_2.getConnection()
@@ -136,16 +153,26 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
             case 1:
                 user = _a.sent();
                 if (user) {
-                    if (req.body.passwort === user.passwort) {
-                        sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret);
-                        res.json({ sessionToken: sessionToken });
-                    }
-                    else {
-                        res.send("Benutzername oder Passwort falsch");
-                    }
+                    bcrypt
+                        .compare(req.body.passwort, user.passwort)
+                        .then(function (ress) {
+                        console.log("user", user);
+                        console.log("ress", ress);
+                        if (ress) {
+                            var sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret);
+                            res.json({ sessionToken: sessionToken });
+                        }
+                        else {
+                            res.send("Benutzername oder Passwort falsch | User nicht vorhanden");
+                        }
+                    })
+                        .catch(function (err) {
+                        res.send(err.message);
+                        console.error(err.message);
+                    });
                 }
                 else {
-                    res.send("Benutzername oder Passwort falsch");
+                    res.send("Benutzername oder Passwort falsch | User nicht vorhanden");
                 }
                 return [2 /*return*/];
         }
@@ -491,28 +518,27 @@ server.post("/searchLocationAdvanced", function (req, res) { return __awaiter(vo
         }
     });
 }); });
-//TODO
-// server.get("/user", async (req: Request, res: Response) => {
-//     const userdata = await getConnection()
-//         .getRepository(UserData)
-//         .createQueryBuilder("userdata")
-//         .getMany()
-//         .catch((err) => {
-//             res.send(err)
-//         })
-//     res.send(userdata)
-// })
-// server.get("/userLocations", async (req: Request, res: Response) => {
-//     const userdata = await getConnection()
-//         .getRepository(UserData)
-//         .createQueryBuilder("userdata") //*Alias für Einträge in LocationPreview
-//         .innerJoinAndSelect("userdata.ownLocations", "preview") //*Alias für Einträge in LocationPreview & LocationDetails
-//         .getMany()
-//         .catch((err) => {
-//             res.send(err)
-//         })
-//     res.send(userdata)
-// })
+//? Just fetch created Locations from User
+server.get("/userCreatedLocations", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var userLocations;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(overview_1.LocationPreview)
+                    .createQueryBuilder("preview") //*Alias für Einträge in LocationPreview
+                    .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
+                    .where("preview.userId = :userId", { userId: req.user.userId })
+                    .getMany()
+                    .catch(function (err) {
+                    res.send("Fehler");
+                })];
+            case 1:
+                userLocations = _a.sent();
+                res.send(userLocations);
+                return [2 /*return*/];
+        }
+    });
+}); });
 //? TODO ENDE
 // !API-Schnittstelle Locations ENDE //
 server.listen(port, function () {
