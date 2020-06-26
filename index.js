@@ -69,7 +69,7 @@ var jwtTokenUberprufung = function (req, res, next) {
         var jwtTokenAusHeader = authent.split(' ')[1];
         jwt.verify(jwtTokenAusHeader, tokensSecret, function (err, user) {
             if (err) {
-                return res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
+                return res.json("Fehler, kein gültiger User oder du bist nicht eingeloggt");
             }
             console.log("user", user);
             req["user"] = user;
@@ -77,7 +77,7 @@ var jwtTokenUberprufung = function (req, res, next) {
         });
     }
     else {
-        res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt");
+        res.json("Fehler, kein gültiger User oder du bist nicht eingeloggt");
     }
 };
 // !API-Schnittstelle User //
@@ -94,7 +94,7 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
             case 1:
                 checkExistingUser = _a.sent();
                 if (checkExistingUser) {
-                    res.send("Fehler, email-Adresse schon vorhanden, bitte wähle eine andere oder setze dein Passwort zurück");
+                    res.json("Fehler, email-Adresse schon vorhanden, bitte wähle eine andere oder setze dein Passwort zurück");
                 }
                 userdata = {
                     id: "user_id_" + randomGenerator_1.default(),
@@ -124,11 +124,11 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
                     ])
                         .execute()
                         .catch(function (err) {
-                        res.send(err);
+                        res.json(err);
                     })];
             case 3:
                 _a.sent();
-                res.send("User " + userdata.username + " mit der Email " + userdata.email + " wurde am " + userdata.registerDate + " hinzugef\u00FCgt");
+                res.json("User " + userdata.username + " mit der Email " + userdata.email + " wurde am " + userdata.registerDate + " hinzugef\u00FCgt");
                 return [2 /*return*/];
         }
     });
@@ -140,7 +140,7 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
         switch (_a.label) {
             case 0:
                 if (req.body.email === undefined || req.body.email === "") {
-                    res.send("Bitte eine gültige Email angeben");
+                    res.json("Bitte eine gültige Email angeben");
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .getRepository(userdata_1.UserData)
@@ -160,16 +160,16 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
                             res.json({ sessionToken: sessionToken });
                         }
                         else {
-                            res.send("Benutzername oder Passwort falsch | User nicht vorhanden");
+                            res.json("Benutzername oder Passwort falsch | User nicht vorhanden");
                         }
                     })
                         .catch(function (err) {
-                        res.send(err.message);
+                        res.json(err.message);
                         console.error(err.message);
                     });
                 }
                 else {
-                    res.send("Benutzername oder Passwort falsch | User nicht vorhanden");
+                    res.json("Benutzername oder Passwort falsch | User nicht vorhanden");
                 }
                 return [2 /*return*/];
         }
@@ -189,7 +189,7 @@ server.post("/message/:username", jwtTokenUberprufung, function (req, res) { ret
                     .where("user.username = :username", { username: req.params.username })
                     .getOne()
                     .catch(function (err) {
-                    res.send(err);
+                    res.json(err);
                 })];
             case 1:
                 recipient = _a.sent();
@@ -213,7 +213,7 @@ server.post("/message/:username", jwtTokenUberprufung, function (req, res) { ret
                     ])
                         .execute()
                         .catch(function (err) {
-                        res.send(err);
+                        res.json(err);
                     })];
             case 2:
                 updateMessagesCenter = _a.sent();
@@ -222,7 +222,7 @@ server.post("/message/:username", jwtTokenUberprufung, function (req, res) { ret
                     topic: req.body.topic,
                     message: req.body.message,
                 };
-                res.send(feedback);
+                res.json(feedback);
                 return [2 /*return*/];
         }
     });
@@ -262,7 +262,7 @@ server.get("/getMessages", jwtTokenUberprufung, function (req, res) { return __a
                     sentMessages: sentMessages,
                     receivedMessages: receivedMessages
                 };
-                res.send(feedback);
+                res.json(feedback);
                 return [2 /*return*/];
         }
     });
@@ -272,7 +272,7 @@ server.get("/getMessages", jwtTokenUberprufung, function (req, res) { return __a
 //?Just tests if Server is online
 server.get("/", function (req, res) {
     console.log("Server ist online !");
-    res.send("Server ist online !");
+    res.json("Server ist online !");
 });
 //? Get Preview
 server.get("/locationPreview/:limit", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
@@ -291,7 +291,7 @@ server.get("/locationPreview/:limit", function (req, res) { return __awaiter(voi
                         .getMany()];
             case 1:
                 locationPreview = _a.sent();
-                res.send(locationPreview);
+                res.json(locationPreview);
                 return [2 /*return*/];
         }
     });
@@ -314,7 +314,7 @@ server.get("/locationDetails/:limit", function (req, res) { return __awaiter(voi
                         .getMany()];
             case 1:
                 locationDetails = _a.sent();
-                res.send(locationDetails);
+                res.json(locationDetails);
                 return [2 /*return*/];
         }
     });
@@ -336,7 +336,7 @@ server.get("/locationDetails/id/:id", function (req, res) { return __awaiter(voi
                         .getOne()];
             case 1:
                 locationDetails = _a.sent();
-                res.send(locationDetails);
+                res.json(locationDetails);
                 return [2 /*return*/];
         }
     });
@@ -349,7 +349,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
             case 0:
                 uniqueId = randomGenerator_1.default();
                 if (req["user"]["userId"] === undefined || req["user"]["userId"] === null) {
-                    res.send("Es liegt ein Fehler vor, bitte erneut einloggen");
+                    res.json("Es liegt ein Fehler vor, bitte erneut einloggen");
                 }
                 expectedBodyDetails = {
                     id: uniqueId,
@@ -387,7 +387,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                 }
                 //*Fail-Log abschicken
                 if (failResponse.length !== 0) {
-                    res.send("Folgende Parameter fehlen: " + failResponse);
+                    res.json("Folgende Parameter fehlen: " + failResponse);
                     return [2 /*return*/];
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
@@ -399,7 +399,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                     ])
                         .execute()
                         .catch(function (err) {
-                        res.send(err);
+                        res.json(err);
                     })
                     //*Erstelle Preview
                 ];
@@ -415,7 +415,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                         .execute()
                         .catch(function (err) {
                         console.log(err);
-                        res.send(err);
+                        res.json(err);
                     })
                     //*Berichterstattung
                 ];
@@ -426,7 +426,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                     details: expectedBodyDetails,
                     status: "Posted on " + new Date()
                 };
-                res.send(responseBody);
+                res.json(responseBody);
                 return [2 /*return*/];
         }
     });
@@ -445,7 +445,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, function (req, res) { 
             case 1:
                 locationDeleteCheck = _a.sent();
                 if (!locationDeleteCheck) {
-                    res.send("Fehler, Anzeige konnte nicht gelöscht werden. Bitte überprüfe deinen Login");
+                    res.json("Fehler, Anzeige konnte nicht gelöscht werden. Bitte überprüfe deinen Login");
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
@@ -454,7 +454,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, function (req, res) { 
                         .where("id = :id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
-                        res.send(err);
+                        res.json(err);
                     })];
             case 2:
                 _a.sent();
@@ -465,11 +465,11 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, function (req, res) { 
                         .where("id = :id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
-                        res.send(err);
+                        res.json(err);
                     })];
             case 3:
                 _a.sent();
-                res.send("Location mit ID " + req.params.id + " wurde erfolgreich gel\u00F6scht");
+                res.json("Location mit ID " + req.params.id + " wurde erfolgreich gel\u00F6scht");
                 return [2 /*return*/];
         }
     });
@@ -488,7 +488,7 @@ server.put("/updateLocation/:id", jwtTokenUberprufung, function (req, res) { ret
             case 1:
                 LocationAvailable = _a.sent();
                 if (!LocationAvailable) {
-                    res.send("Fehler, anzeige nicht vorhanden");
+                    res.json("Fehler, anzeige nicht vorhanden");
                     return [2 /*return*/];
                 }
                 expectedBodyDetails = {
@@ -527,7 +527,7 @@ server.put("/updateLocation/:id", jwtTokenUberprufung, function (req, res) { ret
                         .where("id=:id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
-                        res.send("Beim Updaten ist was schief gelaufen");
+                        res.json("Beim Updaten ist was schief gelaufen");
                     })];
             case 2:
                 _a.sent();
@@ -541,14 +541,14 @@ server.put("/updateLocation/:id", jwtTokenUberprufung, function (req, res) { ret
                         .where("id = :id", { id: req.params.id })
                         .execute()
                         .catch(function (err) {
-                        res.send("Beim Updaten ist was schief gelaufen");
+                        res.json("Beim Updaten ist was schief gelaufen");
                     })];
             case 4:
                 _a.sent();
                 _a.label = 5;
             case 5:
                 //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
-                res.send("Location mit ID " + req.params.id + " wurde erfolgreich angepasst !");
+                res.json("Location mit ID " + req.params.id + " wurde erfolgreich angepasst !");
                 return [2 /*return*/];
         }
     });
@@ -600,11 +600,11 @@ server.post("/searchLocationAdvanced", function (req, res) { return __awaiter(vo
                     }
                 }
                 return [4 /*yield*/, searchQuery.getMany().catch(function (err) {
-                        res.send(err);
+                        res.json(err);
                     })];
             case 1:
                 searchResponse = _e.sent();
-                res.send(searchResponse);
+                res.json(searchResponse);
                 return [2 /*return*/];
         }
     });
@@ -621,11 +621,11 @@ server.get("/userCreatedLocations", jwtTokenUberprufung, function (req, res) { r
                     .where("preview.userId = :userId", { userId: req["user"]["userId"] })
                     .getMany()
                     .catch(function (err) {
-                    res.send("Fehler");
+                    res.json("Fehler");
                 })];
             case 1:
                 userLocations = _a.sent();
-                res.send(userLocations);
+                res.json(userLocations);
                 return [2 /*return*/];
         }
     });
@@ -656,7 +656,7 @@ server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, function (req, re
                         newArray.push(req.params.id);
                     }
                     else {
-                        res.send("Location ist bereits als Favourit gespeichert");
+                        res.json("Location ist bereits als Favourit gespeichert");
                     }
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
@@ -667,7 +667,7 @@ server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, function (req, re
                         .execute()];
             case 2:
                 updateFavourites = _a.sent();
-                res.send("Zu Favouriten hinzugef\u00FCgt: " + newArray);
+                res.json("Zu Favouriten hinzugef\u00FCgt: " + newArray);
                 return [2 /*return*/];
         }
     });
@@ -684,7 +684,7 @@ server.get("/userFavourites", jwtTokenUberprufung, function (req, res) { return 
                     .where("user.id = :id", { id: req["user"]["userId"] })
                     .getOne()
                     .catch(function (err) {
-                    res.send(err);
+                    res.json(err);
                 })];
             case 1:
                 listOfFavourites = _a.sent();
@@ -692,7 +692,7 @@ server.get("/userFavourites", jwtTokenUberprufung, function (req, res) { return 
                     favourites = JSON.parse(listOfFavourites["favourites"]);
                 }
                 else {
-                    res.send("Keine Favouriten gespeichert");
+                    res.json("Keine Favouriten gespeichert");
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .getRepository(overview_1.LocationPreview)
@@ -702,7 +702,7 @@ server.get("/userFavourites", jwtTokenUberprufung, function (req, res) { return 
                         .getMany()];
             case 2:
                 locationDetails = _a.sent();
-                res.send(locationDetails);
+                res.json(locationDetails);
                 return [2 /*return*/];
         }
     });
@@ -731,7 +731,7 @@ server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, function (req, re
                         .execute()];
             case 2:
                 updateFavourites = _a.sent();
-                res.send(newListOfUserFavourites);
+                res.json(newListOfUserFavourites);
                 return [2 /*return*/];
         }
     });

@@ -39,14 +39,14 @@ const jwtTokenUberprufung = (req: Request, res: Response, next) => {
         const jwtTokenAusHeader = authent.split(' ')[1]
         jwt.verify(jwtTokenAusHeader, tokensSecret, (err, user) => {
             if (err) {
-                return res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt")
+                return res.json("Fehler, kein gültiger User oder du bist nicht eingeloggt")
             }
             console.log("user", user)
             req["user"] = user;
             next();
         });
     } else {
-        res.send("Fehler, kein gültiger User oder du bist nicht eingeloggt")
+        res.json("Fehler, kein gültiger User oder du bist nicht eingeloggt")
     }
 }
 
@@ -61,7 +61,7 @@ server.post("/createUser", async (req: Request, res: Response) => {
         .getOne()
 
     if (checkExistingUser) {
-        res.send("Fehler, email-Adresse schon vorhanden, bitte wähle eine andere oder setze dein Passwort zurück")
+        res.json("Fehler, email-Adresse schon vorhanden, bitte wähle eine andere oder setze dein Passwort zurück")
     }
 
     const userdata = {
@@ -92,15 +92,15 @@ server.post("/createUser", async (req: Request, res: Response) => {
         ])
         .execute()
         .catch((err) => {
-            res.send(err)
+            res.json(err)
         })
-    res.send(`User ${userdata.username} mit der Email ${userdata.email} wurde am ${userdata.registerDate} hinzugefügt`)
+    res.json(`User ${userdata.username} mit der Email ${userdata.email} wurde am ${userdata.registerDate} hinzugefügt`)
 })
 //?User-Login
 server.post("/auth0/login", async (req: Request, res: Response) => {
 
     if (req.body.email === undefined || req.body.email === "") {
-        res.send("Bitte eine gültige Email angeben")
+        res.json("Bitte eine gültige Email angeben")
     }
 
     const user = await getConnection()
@@ -120,15 +120,15 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
                     const sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret)
                     res.json({ sessionToken })
                 } else {
-                    res.send("Benutzername oder Passwort falsch | User nicht vorhanden")
+                    res.json("Benutzername oder Passwort falsch | User nicht vorhanden")
                 }
             })
             .catch((err) => {
-                res.send(err.message)
+                res.json(err.message)
                 console.error(err.message)
             })
     } else {
-        res.send("Benutzername oder Passwort falsch | User nicht vorhanden")
+        res.json("Benutzername oder Passwort falsch | User nicht vorhanden")
     }
 
 })
@@ -146,7 +146,7 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
         .where("user.username = :username", { username: req.params.username })
         .getOne()
         .catch((err) => {
-        res.send(err)
+        res.json(err)
     })
 
     const messagebody = {
@@ -170,7 +170,7 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
         ])
         .execute()
         .catch((err) => {
-            res.send(err)
+            res.json(err)
         })
 
     const feedback = {
@@ -179,7 +179,7 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
         message: req.body.message,
     }
 
-    res.send(feedback)
+    res.json(feedback)
 
 })
 //?get all messages related to user
@@ -214,7 +214,7 @@ server.get("/getMessages", jwtTokenUberprufung, async (req: Request, res: Respon
         receivedMessages: receivedMessages
     }
 
-    res.send(feedback)
+    res.json(feedback)
     
 })
 // !API-Schnittstelle Messages END//
@@ -224,7 +224,7 @@ server.get("/getMessages", jwtTokenUberprufung, async (req: Request, res: Respon
 //?Just tests if Server is online
 server.get("/", (req: Request, res: Response) => {
     console.log("Server ist online !")
-    res.send("Server ist online !")
+    res.json("Server ist online !")
 })
 //? Get Preview
 server.get("/locationPreview/:limit", async (req: Request, res: Response) => {
@@ -240,7 +240,7 @@ server.get("/locationPreview/:limit", async (req: Request, res: Response) => {
         .limit(anzahl)
         .getMany();
 
-    res.send(locationPreview)
+    res.json(locationPreview)
 })
 //?Get FullView
 server.get("/locationDetails/:limit", async (req: Request, res: Response) => {
@@ -256,7 +256,7 @@ server.get("/locationDetails/:limit", async (req: Request, res: Response) => {
         .limit(anzahl)
         .getMany();
 
-    res.send(locationDetails)
+    res.json(locationDetails)
 })
 //?Get Location via ID
 server.get("/locationDetails/id/:id", async (req: Request, res: Response) => {
@@ -274,7 +274,7 @@ server.get("/locationDetails/id/:id", async (req: Request, res: Response) => {
         .where("preview.id = :id", { id: locationId })
         .getOne();
 
-    res.send(locationDetails)
+    res.json(locationDetails)
 })
 //?Post Location
 server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Response) => {
@@ -282,7 +282,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
     let uniqueId: string = randomId()
 
     if (req["user"]["userId"] === undefined || req["user"]["userId"] === null) {
-        res.send("Es liegt ein Fehler vor, bitte erneut einloggen")
+        res.json("Es liegt ein Fehler vor, bitte erneut einloggen")
     }
 
     const expectedBodyDetails = {
@@ -326,7 +326,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
     }
     //*Fail-Log abschicken
     if (failResponse.length !== 0) {
-        res.send(`Folgende Parameter fehlen: ${failResponse}`)
+        res.json(`Folgende Parameter fehlen: ${failResponse}`)
         return
     }
 
@@ -340,7 +340,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
         ])
         .execute()
         .catch((err) => {
-            res.send(err)
+            res.json(err)
         })
 
     //*Erstelle Preview
@@ -354,7 +354,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
         .execute()
         .catch((err) => {
             console.log(err)
-            res.send(err)
+            res.json(err)
         })
 
     //*Berichterstattung
@@ -364,7 +364,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
         status: `Posted on ${new Date()}`
     }
 
-    res.send(responseBody)
+    res.json(responseBody)
 })
 //?Delete Location
 server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
@@ -377,7 +377,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, r
         .getOne()
 
     if (!locationDeleteCheck) {
-        res.send("Fehler, Anzeige konnte nicht gelöscht werden. Bitte überprüfe deinen Login")
+        res.json("Fehler, Anzeige konnte nicht gelöscht werden. Bitte überprüfe deinen Login")
     }
 
     await getConnection()
@@ -387,7 +387,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, r
         .where("id = :id", { id: req.params.id })
         .execute()
         .catch((err) => {
-            res.send(err)
+            res.json(err)
         })
 
     await getConnection()
@@ -397,10 +397,10 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, r
         .where("id = :id", { id: req.params.id })
         .execute()
         .catch((err) => {
-            res.send(err)
+            res.json(err)
         })
 
-    res.send(`Location mit ID ${req.params.id} wurde erfolgreich gelöscht`)
+    res.json(`Location mit ID ${req.params.id} wurde erfolgreich gelöscht`)
 
 })
 //?Update Location
@@ -415,7 +415,7 @@ server.put("/updateLocation/:id", jwtTokenUberprufung, async (req: Request, res:
         .getOne()
 
     if (!LocationAvailable) {
-        res.send("Fehler, anzeige nicht vorhanden")
+        res.json("Fehler, anzeige nicht vorhanden")
         return
     }
 
@@ -462,7 +462,7 @@ server.put("/updateLocation/:id", jwtTokenUberprufung, async (req: Request, res:
             .where("id=:id", { id: req.params.id })
             .execute()
             .catch((err) => {
-                res.send("Beim Updaten ist was schief gelaufen")
+                res.json("Beim Updaten ist was schief gelaufen")
             })
     }
     //*Updates Details-Table
@@ -475,12 +475,12 @@ server.put("/updateLocation/:id", jwtTokenUberprufung, async (req: Request, res:
             .where("id = :id", { id: req.params.id })
             .execute()
             .catch((err) => {
-                res.send("Beim Updaten ist was schief gelaufen")
+                res.json("Beim Updaten ist was schief gelaufen")
             })
     }
 
     //! { bodyDetails: queryUpdaterDetails, bodyPreview: queryUpdaterPreview }
-    res.send(`Location mit ID ${req.params.id} wurde erfolgreich angepasst !`)
+    res.json(`Location mit ID ${req.params.id} wurde erfolgreich angepasst !`)
 })
 //?Combined Search-Algorythm
 server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
@@ -538,10 +538,10 @@ server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
     }
 
     const searchResponse = await searchQuery.getMany().catch((err) => {
-        res.send(err)
+        res.json(err)
     })
 
-    res.send(searchResponse)
+    res.json(searchResponse)
 
 })
 //? Just fetch created Locations from User
@@ -554,10 +554,10 @@ server.get("/userCreatedLocations", jwtTokenUberprufung, async (req: Request, re
         .where("preview.userId = :userId", { userId: req["user"]["userId"] })
         .getMany()
         .catch((err) => {
-            res.send("Fehler")
+            res.json("Fehler")
         })
 
-    res.send(userLocations)
+    res.json(userLocations)
 
 })
 //? Save Favourite by location ID
@@ -582,7 +582,7 @@ server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, async (req: Reque
         if (!duplicateCheck) {
             newArray.push(req.params.id)
         } else {
-            res.send("Location ist bereits als Favourit gespeichert")
+            res.json("Location ist bereits als Favourit gespeichert")
         }
     }
 
@@ -593,7 +593,7 @@ server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, async (req: Reque
         .where("id = :id", { id: req["user"]["userId"] })
         .execute()
 
-    res.send(`Zu Favouriten hinzugefügt: ${newArray}`)
+    res.json(`Zu Favouriten hinzugefügt: ${newArray}`)
 })
 //?Just return user favourites
 server.get("/userFavourites", jwtTokenUberprufung, async (req: Request, res: Response) => {
@@ -605,7 +605,7 @@ server.get("/userFavourites", jwtTokenUberprufung, async (req: Request, res: Res
         .where("user.id = :id", { id: req["user"]["userId"] })
         .getOne()
         .catch((err) => {
-            res.send(err)
+            res.json(err)
         })
 
     let favourites;
@@ -613,7 +613,7 @@ server.get("/userFavourites", jwtTokenUberprufung, async (req: Request, res: Res
     if (listOfFavourites["favourites"] !== "") {
         favourites = JSON.parse(listOfFavourites["favourites"])
     } else {
-        res.send("Keine Favouriten gespeichert")
+        res.json("Keine Favouriten gespeichert")
     }
 
     const locationDetails = await getConnection()
@@ -623,7 +623,7 @@ server.get("/userFavourites", jwtTokenUberprufung, async (req: Request, res: Res
         .where("preview.id IN (:...id)", { id: favourites })
         .getMany()
 
-    res.send(locationDetails)
+    res.json(locationDetails)
 
 })
 //? Deletes users favourite
@@ -647,7 +647,7 @@ server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, async (req: Reque
         .where("id = :id", { id: req["user"]["userId"] })
         .execute()
 
-    res.send(newListOfUserFavourites)
+    res.json(newListOfUserFavourites)
 
 })
 
