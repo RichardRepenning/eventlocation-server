@@ -175,6 +175,13 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
     });
 }); });
 // !API-Schnittstelle User END//
+// !API-Schnittstelle Messages //
+server.post("/message/:locationId", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        return [2 /*return*/];
+    });
+}); });
+// !API-Schnittstelle Messages END//
 // !API-Schnittstelle Locations //
 //?Just tests if Server is online
 server.get("/", function (req, res) {

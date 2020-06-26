@@ -71,6 +71,10 @@ var UserData = /** @class */ (function () {
         __metadata("design:type", String)
     ], UserData.prototype, "messages", void 0);
     __decorate([
+        typeorm_1.Column({ default: "" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "blockmessages", void 0);
+    __decorate([
         typeorm_1.Column(),
         __metadata("design:type", Date)
     ], UserData.prototype, "registerDate", void 0);

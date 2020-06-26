@@ -133,6 +133,36 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
 })
 // !API-Schnittstelle User END//
 
+// !API-Schnittstelle Messages //
+server.post("/message/:locationId", jwtTokenUberprufung, async (req: Request, res: Response) => {
+    
+    // const messages = await getConnection()
+    //     .getRepository(UserData)
+    //     .createQueryBuilder("user")
+    //     .select("user.favourites")
+    //     .where("user.id = :id", { id: req["user"]["userId"] })
+    //     .getOne()
+
+    // let newArray = []
+
+    // if (favourites.favourites === "") {
+    //     newArray.push(req.params.id)
+    // } else {
+    //     newArray = JSON.parse(favourites.favourites)
+    //     let duplicateCheck = newArray.some((entry) => {
+    //         return entry === req.params.id
+    //     })
+    //     if (!duplicateCheck) {
+    //         newArray.push(req.params.id)
+    //     } else {
+    //         res.send("Location ist bereits als Favourit gespeichert")
+    //     }
+    // }
+
+
+})
+
+// !API-Schnittstelle Messages END//
 
 // !API-Schnittstelle Locations //
 

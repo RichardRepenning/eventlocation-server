@@ -31,6 +31,8 @@ export class UserData {
     favourites: string;
     @Column({ default: "" })
     messages: string;
+    @Column({ default: "" })
+    blockmessages: string;
     @Column()
     registerDate: Date
 }
