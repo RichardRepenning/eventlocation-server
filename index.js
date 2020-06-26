@@ -191,7 +191,7 @@ server.get("/getUserMessages", jwtTokenUberprufung, function (req, res) { return
                 })];
             case 1:
                 messagesUser = _a.sent();
-                if (!messagesUser) {
+                if (messagesUser["messages"] === "") {
                     res.send("Keine Nachrichten vorhanden");
                 }
                 else {
@@ -202,13 +202,13 @@ server.get("/getUserMessages", jwtTokenUberprufung, function (req, res) { return
     });
 }); });
 server.post("/message/:username", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var messagesSender, messagesRecipient, newArraySender, newArrayRecipient, messagebody, updateMessagesSender, updateMessagesRecipient, response;
+    var messagesSender, messagesRecipient, newArraySender, newArrayRecipient, messagebody, updateMessagesSender, feedback;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_2.getConnection()
                     .getRepository(userdata_1.UserData)
                     .createQueryBuilder("user")
-                    .select("user.messages")
+                    .select("user.sentMessages")
                     .where("user.id = :id", { id: req["user"]["userId"] })
                     .getOne()];
             case 1:
@@ -216,8 +216,8 @@ server.post("/message/:username", jwtTokenUberprufung, function (req, res) { ret
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .getRepository(userdata_1.UserData)
                         .createQueryBuilder("user")
-                        .select("user.messages")
-                        .where("user.username = :username", { id: req.params.username })
+                        .select("user.receivedMessages")
+                        .where("user.username = :username", { username: req.params.username })
                         .getOne()];
             case 2:
                 messagesRecipient = _a.sent();
@@ -232,53 +232,37 @@ server.post("/message/:username", jwtTokenUberprufung, function (req, res) { ret
                     createdByName: req["user"]["username"]
                 };
                 //*Add message to sender
-                if (messagesSender["messages"] === "") {
+                if (messagesSender["sentMessages"] === "") {
                     newArraySender.push(messagebody);
                 }
                 else {
-                    newArraySender = JSON.parse(messagesSender["messages"]);
+                    newArraySender = JSON.parse(messagesSender["sentMessages"]);
                     newArraySender.push(messagebody);
+                }
+                // //*Add message to recipient
+                if (messagesRecipient["receivedMessages"] === "") {
+                    newArrayRecipient.push(messagebody);
+                }
+                else {
+                    newArrayRecipient = JSON.parse(messagesRecipient["receivedMessages"]);
+                    newArrayRecipient.push(messagebody);
                 }
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
                         .update(userdata_1.UserData)
-                        .set({ messages: JSON.stringify(newArraySender) })
+                        .set({ sentMessages: JSON.stringify(newArraySender) })
                         .where("id = :id", { id: req["user"]["userId"] })
-                        .execute()
-                    //*Add message to sender END
-                    //*Add message to recipient
-                ];
+                        .execute()];
             case 3:
                 updateMessagesSender = _a.sent();
-                //*Add message to sender END
-                //*Add message to recipient
-                if (messagesRecipient["messages"] === "") {
-                    newArrayRecipient.push(messagebody);
-                }
-                else {
-                    newArrayRecipient = JSON.parse(messagesRecipient["messages"]);
-                    newArrayRecipient.push(messagebody);
-                }
-                return [4 /*yield*/, typeorm_2.getConnection()
-                        .createQueryBuilder()
-                        .update(userdata_1.UserData)
-                        .set({ messages: JSON.stringify(newArraySender) })
-                        .where("username = :username", { username: req.params.username })
-                        .execute()
-                    //*Add message to recipient END
-                ];
-            case 4:
-                updateMessagesRecipient = _a.sent();
-                response = {
-                    status: "sent",
-                    from: req["user"]["userId"],
-                    to: req.params.username,
-                    details: {
-                        sender: updateMessagesSender,
-                        recipient: updateMessagesRecipient
-                    }
+                feedback = {
+                    arraySender: newArraySender,
+                    arrayRecipient: newArrayRecipient,
+                    messagesSender: messagesSender,
+                    messagesRecipient: messagesRecipient,
+                    messageBody: messagebody
                 };
-                res.send(response);
+                res.send(feedback);
                 return [2 /*return*/];
         }
     });

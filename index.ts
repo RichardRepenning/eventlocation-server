@@ -4,6 +4,7 @@ import { getConnection, createQueryBuilder } from "typeorm";
 import { LocationDetails } from './tables/details'
 import { LocationPreview } from './tables/overview'
 import { UserData } from './tables/userdata'
+import { MessageCenter } from './tables/messageCenter'
 import "reflect-metadata";
 import randomId from './randomGenerator'
 
@@ -145,8 +146,8 @@ server.get("/getUserMessages", jwtTokenUberprufung, async (req: Request, res: Re
         .catch((err) => {
             res.send(err)
         })
-  
-    if (!messagesUser) {
+
+    if (messagesUser["messages"] === "") {
         res.send("Keine Nachrichten vorhanden")
     } else {
         res.send(JSON.parse(messagesUser["messages"]))
@@ -157,15 +158,15 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
     const messagesSender = await getConnection()
         .getRepository(UserData)
         .createQueryBuilder("user")
-        .select("user.messages")
+        .select("user.sentMessages")
         .where("user.id = :id", { id: req["user"]["userId"] })
         .getOne()
 
     const messagesRecipient = await getConnection()
         .getRepository(UserData)
         .createQueryBuilder("user")
-        .select("user.messages")
-        .where("user.username = :username", { id: req.params.username })
+        .select("user.receivedMessages")
+        .where("user.username = :username", { username: req.params.username })
         .getOne()
 
     let newArraySender = []
@@ -181,48 +182,67 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
     }
 
     //*Add message to sender
-    if (messagesSender["messages"] === "") {
+    if (messagesSender["sentMessages"] === "") {
         newArraySender.push(messagebody)
     } else {
-        newArraySender = JSON.parse(messagesSender["messages"])
+        newArraySender = JSON.parse(messagesSender["sentMessages"])
         newArraySender.push(messagebody)
+    }
+    // //*Add message to recipient
+    if (messagesRecipient["receivedMessages"] === "") {
+        newArrayRecipient.push(messagebody)
+    } else {
+        newArrayRecipient = JSON.parse(messagesRecipient["receivedMessages"])
+        newArrayRecipient.push(messagebody)
     }
 
     const updateMessagesSender = await getConnection()
         .createQueryBuilder()
         .update(UserData)
-        .set({ messages: JSON.stringify(newArraySender) })
+        .set({ sentMessages: JSON.stringify(newArraySender) })
         .where("id = :id", { id: req["user"]["userId"] })
         .execute()
-    //*Add message to sender END
 
-
-    //*Add message to recipient
-    if (messagesRecipient["messages"] === "") {
-        newArrayRecipient.push(messagebody)
-    } else {
-        newArrayRecipient = JSON.parse(messagesRecipient["messages"])
-        newArrayRecipient.push(messagebody)
-    }
-    const updateMessagesRecipient = await getConnection()
-        .createQueryBuilder()
-        .update(UserData)
-        .set({ messages: JSON.stringify(newArraySender) })
-        .where("username = :username", { username: req.params.username })
-        .execute()
-    //*Add message to recipient END
-
-    let response = {
-        status: "sent",
-        from: req["user"]["userId"],
-        to: req.params.username,
-        details: {
-            sender: updateMessagesSender,
-            recipient: updateMessagesRecipient
-        }
+    let feedback = {
+        arraySender: newArraySender,
+        arrayRecipient: newArrayRecipient,
+        messagesSender: messagesSender,
+        messagesRecipient: messagesRecipient,
+        messageBody: messagebody
     }
 
-    res.send(response)
+    res.send(feedback)
+
+
+
+
+
+
+
+
+    // //*Add message to sender END
+
+
+
+    // const updateMessagesRecipient = await getConnection()
+    //     .createQueryBuilder()
+    //     .update(UserData)
+    //     .set({ messages: JSON.stringify(newArraySender) })
+    //     .where("username = :username", { username: req.params.username })
+    //     .execute()
+    // //*Add message to recipient END
+
+    // let response = {
+    //     status: "sent",
+    //     from: req["user"]["userId"],
+    //     to: req.params.username,
+    //     details: {
+    //         sender: updateMessagesSender,
+    //         recipient: updateMessagesRecipient
+    //     }
+    // }
+
+    // res.send(response)
 
 })
 

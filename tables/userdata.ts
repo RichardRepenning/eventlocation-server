@@ -30,7 +30,9 @@ export class UserData {
     @Column({ default: "" })
     favourites: string;
     @Column({ default: "" })
-    messages: string;
+    receivedMessages: string;
+    @Column({ default: "" })
+    sentMessages: string;
     @Column({ default: "" })
     blockmessages: string;
     @Column()

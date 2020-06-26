@@ -69,7 +69,11 @@ var UserData = /** @class */ (function () {
     __decorate([
         typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
-    ], UserData.prototype, "messages", void 0);
+    ], UserData.prototype, "receivedMessages", void 0);
+    __decorate([
+        typeorm_1.Column({ default: "" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "sentMessages", void 0);
     __decorate([
         typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
