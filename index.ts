@@ -146,8 +146,8 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
         .where("user.username = :username", { username: req.params.username })
         .getOne()
         .catch((err) => {
-        res.json(err)
-    })
+            res.json(err)
+        })
 
     const messagebody = {
         id: `message_id_${randomId()}`,
@@ -184,7 +184,7 @@ server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res:
 })
 //?get all messages related to user
 server.get("/getMessages", jwtTokenUberprufung, async (req: Request, res: Response) => {
-    
+
     const sentMessages = await getConnection()
         .getRepository(MessageCenter)
         .createQueryBuilder("message")
@@ -194,9 +194,9 @@ server.get("/getMessages", jwtTokenUberprufung, async (req: Request, res: Respon
         .addSelect("message.message")
         .addSelect("message.createdByName")
         .addSelect("message.receivedByName")
-        .where("message.createdById = :createdById", { createdById: req["user"]["userId"]})
+        .where("message.createdById = :createdById", { createdById: req["user"]["userId"] })
         .getMany()
-    
+
     const receivedMessages = await getConnection()
         .getRepository(MessageCenter)
         .createQueryBuilder("message")
@@ -208,14 +208,65 @@ server.get("/getMessages", jwtTokenUberprufung, async (req: Request, res: Respon
         .addSelect("message.receivedByName")
         .where("message.receivedById = :receivedById", { receivedById: req["user"]["userId"] })
         .getMany()
-    
+
     const feedback = {
         sentMessages: sentMessages,
         receivedMessages: receivedMessages
     }
 
     res.json(feedback)
-    
+
+})
+//?delete raleted message
+server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, async (req: Request, res: Response) => {
+
+    const findRelatedMessage = await getConnection()
+        .getRepository(MessageCenter)
+        .createQueryBuilder("message")
+        .where("message.createdById = :createdById", { createdById: req["user"]["userId"] })
+        .andWhere("message.messageId = :messageId", { messageId: req.params.messageId })
+        .getOne()
+
+    if (findRelatedMessage) {
+
+        const generatedMessage = {
+            id: `message_id_${randomId()}`,
+            messageId: `message_id_${randomId()}`,
+            date: new Date,
+            topic: "Message deleted !!",
+            message: `Der User hat die Nachricht mit ID ${findRelatedMessage["messageId"]} gelöscht`,
+            createdByName: "Message-Bot",
+            createdById: "Message-Bot",
+            receivedByName: findRelatedMessage["receivedByName"],
+            receivedById: findRelatedMessage["receivedById"]
+        }
+
+        const informRecipient = await getConnection()
+            .createQueryBuilder()
+            .insert()
+            .into(MessageCenter)
+            .values([
+                generatedMessage
+            ])
+            .execute()
+            .catch((err) => {
+                res.json(err)
+            })
+
+
+        const deleteMessage = await getConnection()
+            .createQueryBuilder()
+            .delete()
+            .from(MessageCenter)
+            .where("messageId = :messageId", { messageId: req.params.messageId })
+            .execute()
+            .catch((err) => {
+                res.json(err)
+            })
+        res.json(`Nachricht mit ID ${req.params.messageId} erfolgreich gelöscht`)
+    } else {
+        res.json("Es gibt keine Nachrichten zu dieser ID")
+    }
 })
 // !API-Schnittstelle Messages END//
 

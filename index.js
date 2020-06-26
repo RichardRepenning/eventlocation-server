@@ -267,6 +267,64 @@ server.get("/getMessages", jwtTokenUberprufung, function (req, res) { return __a
         }
     });
 }); });
+//?delete raleted message
+server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var findRelatedMessage, generatedMessage, informRecipient, deleteMessage;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(messageCenter_1.MessageCenter)
+                    .createQueryBuilder("message")
+                    .where("message.createdById = :createdById", { createdById: req["user"]["userId"] })
+                    .andWhere("message.messageId = :messageId", { messageId: req.params.messageId })
+                    .getOne()];
+            case 1:
+                findRelatedMessage = _a.sent();
+                if (!findRelatedMessage) return [3 /*break*/, 4];
+                generatedMessage = {
+                    id: "message_id_" + randomGenerator_1.default(),
+                    messageId: "message_id_" + randomGenerator_1.default(),
+                    date: new Date,
+                    topic: "Message deleted !!",
+                    message: "Der User hat die Nachricht mit ID " + findRelatedMessage["messageId"] + " gel\u00F6scht",
+                    createdByName: "Message-Bot",
+                    createdById: "Message-Bot",
+                    receivedByName: findRelatedMessage["receivedByName"],
+                    receivedById: findRelatedMessage["receivedById"]
+                };
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .insert()
+                        .into(messageCenter_1.MessageCenter)
+                        .values([
+                        generatedMessage
+                    ])
+                        .execute()
+                        .catch(function (err) {
+                        res.json(err);
+                    })];
+            case 2:
+                informRecipient = _a.sent();
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .delete()
+                        .from(messageCenter_1.MessageCenter)
+                        .where("messageId = :messageId", { messageId: req.params.messageId })
+                        .execute()
+                        .catch(function (err) {
+                        res.json(err);
+                    })];
+            case 3:
+                deleteMessage = _a.sent();
+                res.json("Nachricht mit ID " + req.params.messageId + " erfolgreich gel\u00F6scht");
+                return [3 /*break*/, 5];
+            case 4:
+                res.json("Es gibt keine Nachrichten zu dieser ID");
+                _a.label = 5;
+            case 5: return [2 /*return*/];
+        }
+    });
+}); });
 // !API-Schnittstelle Messages END//
 // !API-Schnittstelle Locations //
 //?Just tests if Server is online
