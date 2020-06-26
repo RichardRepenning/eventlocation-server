@@ -69,7 +69,7 @@ var UserData = /** @class */ (function () {
     __decorate([
         typeorm_1.Column({ default: "" }),
         __metadata("design:type", String)
-    ], UserData.prototype, "ownLocations", void 0);
+    ], UserData.prototype, "messages", void 0);
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", Date)

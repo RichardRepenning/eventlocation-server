@@ -30,7 +30,7 @@ export class UserData {
     @Column({ default: "" })
     favourites: string;
     @Column({ default: "" })
-    ownLocations: string;
+    messages: string;
     @Column()
     registerDate: Date
 }
