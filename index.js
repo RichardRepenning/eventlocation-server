@@ -269,7 +269,7 @@ server.get("/getMessages", jwtTokenUberprufung, function (req, res) { return __a
 }); });
 //?delete raleted message
 server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var findRelatedMessage, generatedMessage, informRecipient, deleteMessage;
+    var findRelatedMessage, generatedMessage, informRecipient, deleteMessage, messageBotmessage, deleteMessage;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_2.getConnection()
@@ -280,7 +280,8 @@ server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, function (re
                     .getOne()];
             case 1:
                 findRelatedMessage = _a.sent();
-                if (!findRelatedMessage) return [3 /*break*/, 4];
+                if (!findRelatedMessage) return [3 /*break*/, 5];
+                if (!(findRelatedMessage["createdByName"] !== "Message-Bot")) return [3 /*break*/, 3];
                 generatedMessage = {
                     id: "message_id_" + randomGenerator_1.default(),
                     messageId: "message_id_" + randomGenerator_1.default(),
@@ -305,6 +306,30 @@ server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, function (re
                     })];
             case 2:
                 informRecipient = _a.sent();
+                _a.label = 3;
+            case 3: return [4 /*yield*/, typeorm_2.getConnection()
+                    .createQueryBuilder()
+                    .delete()
+                    .from(messageCenter_1.MessageCenter)
+                    .where("messageId = :messageId", { messageId: req.params.messageId })
+                    .execute()
+                    .catch(function (err) {
+                    res.json(err);
+                })];
+            case 4:
+                deleteMessage = _a.sent();
+                res.json("Nachricht mit ID " + req.params.messageId + " erfolgreich gel\u00F6scht");
+                return [3 /*break*/, 9];
+            case 5: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(messageCenter_1.MessageCenter)
+                    .createQueryBuilder("message")
+                    .where("message.createdById = :createdById", { createdById: "Message-Bot" })
+                    .andWhere("message.messageId = :messageId", { messageId: req.params.messageId })
+                    .andWhere("message.receivedById = :receivedById", { receivedById: req["user"]["userId"] })
+                    .getOne()];
+            case 6:
+                messageBotmessage = _a.sent();
+                if (!messageBotmessage) return [3 /*break*/, 8];
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
                         .delete()
@@ -314,14 +339,14 @@ server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, function (re
                         .catch(function (err) {
                         res.json(err);
                     })];
-            case 3:
+            case 7:
                 deleteMessage = _a.sent();
                 res.json("Nachricht mit ID " + req.params.messageId + " erfolgreich gel\u00F6scht");
-                return [3 /*break*/, 5];
-            case 4:
+                return [3 /*break*/, 9];
+            case 8:
                 res.json("Es gibt keine Nachrichten zu dieser ID");
-                _a.label = 5;
-            case 5: return [2 /*return*/];
+                _a.label = 9;
+            case 9: return [2 /*return*/];
         }
     });
 }); });

@@ -226,34 +226,36 @@ server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, async (req: 
         .where("message.createdById = :createdById", { createdById: req["user"]["userId"] })
         .andWhere("message.messageId = :messageId", { messageId: req.params.messageId })
         .getOne()
-
+ 
     if (findRelatedMessage) {
 
-        const generatedMessage = {
-            id: `message_id_${randomId()}`,
-            messageId: `message_id_${randomId()}`,
-            date: new Date,
-            topic: "Message deleted !!",
-            message: `Der User hat die Nachricht mit ID ${findRelatedMessage["messageId"]} gelöscht`,
-            createdByName: "Message-Bot",
-            createdById: "Message-Bot",
-            receivedByName: findRelatedMessage["receivedByName"],
-            receivedById: findRelatedMessage["receivedById"]
+        //?Allows User to delete Message-Bot messages, inform recipient about delete
+        if (findRelatedMessage["createdByName"] !== "Message-Bot") {
+            const generatedMessage = {
+                id: `message_id_${randomId()}`,
+                messageId: `message_id_${randomId()}`,
+                date: new Date,
+                topic: "Message deleted !!",
+                message: `Der User hat die Nachricht mit ID ${findRelatedMessage["messageId"]} gelöscht`,
+                createdByName: "Message-Bot",
+                createdById: "Message-Bot",
+                receivedByName: findRelatedMessage["receivedByName"],
+                receivedById: findRelatedMessage["receivedById"]
+            }
+
+            const informRecipient = await getConnection()
+                .createQueryBuilder()
+                .insert()
+                .into(MessageCenter)
+                .values([
+                    generatedMessage
+                ])
+                .execute()
+                .catch((err) => {
+                    res.json(err)
+                })
         }
-
-        const informRecipient = await getConnection()
-            .createQueryBuilder()
-            .insert()
-            .into(MessageCenter)
-            .values([
-                generatedMessage
-            ])
-            .execute()
-            .catch((err) => {
-                res.json(err)
-            })
-
-
+        //?Deletes the message
         const deleteMessage = await getConnection()
             .createQueryBuilder()
             .delete()
@@ -263,9 +265,35 @@ server.delete("/deleteUserMessage/:messageId", jwtTokenUberprufung, async (req: 
             .catch((err) => {
                 res.json(err)
             })
+        
         res.json(`Nachricht mit ID ${req.params.messageId} erfolgreich gelöscht`)
+
     } else {
-        res.json("Es gibt keine Nachrichten zu dieser ID")
+
+        const messageBotmessage = await getConnection()
+            .getRepository(MessageCenter)
+            .createQueryBuilder("message")
+            .where("message.createdById = :createdById", { createdById: "Message-Bot"})
+            .andWhere("message.messageId = :messageId", { messageId: req.params.messageId })
+            .andWhere("message.receivedById = :receivedById", { receivedById: req["user"]["userId"]})
+            .getOne()
+        
+        if (messageBotmessage) {
+            const deleteMessage = await getConnection()
+                .createQueryBuilder()
+                .delete()
+                .from(MessageCenter)
+                .where("messageId = :messageId", { messageId: req.params.messageId })
+                .execute()
+                .catch((err) => {
+                    res.json(err)
+                })
+            res.json(`Nachricht mit ID ${req.params.messageId} erfolgreich gelöscht`)
+
+        } else {
+
+            res.json("Es gibt keine Nachrichten zu dieser ID")
+        }
     }
 })
 // !API-Schnittstelle Messages END//
