@@ -41,6 +41,7 @@ var typeorm_2 = require("typeorm");
 var details_1 = require("./tables/details");
 var overview_1 = require("./tables/overview");
 var userdata_1 = require("./tables/userdata");
+var messageCenter_1 = require("./tables/messageCenter");
 require("reflect-metadata");
 var randomGenerator_1 = require("./randomGenerator");
 var express = require("express");
@@ -176,91 +177,90 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
 }); });
 // !API-Schnittstelle User END//
 // !API-Schnittstelle Messages //
-server.get("/getUserMessages", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var messagesUser;
+//?Send new message to recipient
+server.post("/message/:username", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var recipient, messagebody, updateMessagesCenter, feedback;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_2.getConnection()
                     .getRepository(userdata_1.UserData)
                     .createQueryBuilder("user")
-                    .select("user.messages")
-                    .where("user.id = :id", { id: req["user"]["userId"] })
+                    .select("user.id")
+                    .where("user.username = :username", { username: req.params.username })
                     .getOne()
                     .catch(function (err) {
                     res.send(err);
                 })];
             case 1:
-                messagesUser = _a.sent();
-                if (messagesUser["messages"] === "") {
-                    res.send("Keine Nachrichten vorhanden");
-                }
-                else {
-                    res.send(JSON.parse(messagesUser["messages"]));
-                }
-                return [2 /*return*/];
-        }
-    });
-}); });
-server.post("/message/:username", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var messagesSender, messagesRecipient, newArraySender, newArrayRecipient, messagebody, updateMessagesSender, feedback;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, typeorm_2.getConnection()
-                    .getRepository(userdata_1.UserData)
-                    .createQueryBuilder("user")
-                    .select("user.sentMessages")
-                    .where("user.id = :id", { id: req["user"]["userId"] })
-                    .getOne()];
-            case 1:
-                messagesSender = _a.sent();
-                return [4 /*yield*/, typeorm_2.getConnection()
-                        .getRepository(userdata_1.UserData)
-                        .createQueryBuilder("user")
-                        .select("user.receivedMessages")
-                        .where("user.username = :username", { username: req.params.username })
-                        .getOne()];
-            case 2:
-                messagesRecipient = _a.sent();
-                newArraySender = [];
-                newArrayRecipient = [];
+                recipient = _a.sent();
                 messagebody = {
+                    id: "message_id_" + randomGenerator_1.default(),
                     messageId: "message_id_" + randomGenerator_1.default(),
                     date: new Date,
                     topic: req.body.topic,
                     message: req.body.message,
-                    // createdById: req["user"]["userId"],
-                    createdByName: req["user"]["username"]
+                    createdByName: req["user"]["username"],
+                    createdById: req["user"]["userId"],
+                    receivedByName: req.params.username,
+                    receivedById: recipient["id"]
                 };
-                //*Add message to sender
-                if (messagesSender["sentMessages"] === "") {
-                    newArraySender.push(messagebody);
-                }
-                else {
-                    newArraySender = JSON.parse(messagesSender["sentMessages"]);
-                    newArraySender.push(messagebody);
-                }
-                // //*Add message to recipient
-                if (messagesRecipient["receivedMessages"] === "") {
-                    newArrayRecipient.push(messagebody);
-                }
-                else {
-                    newArrayRecipient = JSON.parse(messagesRecipient["receivedMessages"]);
-                    newArrayRecipient.push(messagebody);
-                }
                 return [4 /*yield*/, typeorm_2.getConnection()
                         .createQueryBuilder()
-                        .update(userdata_1.UserData)
-                        .set({ sentMessages: JSON.stringify(newArraySender) })
-                        .where("id = :id", { id: req["user"]["userId"] })
-                        .execute()];
-            case 3:
-                updateMessagesSender = _a.sent();
+                        .insert()
+                        .into(messageCenter_1.MessageCenter)
+                        .values([
+                        messagebody
+                    ])
+                        .execute()
+                        .catch(function (err) {
+                        res.send(err);
+                    })];
+            case 2:
+                updateMessagesCenter = _a.sent();
                 feedback = {
-                    arraySender: newArraySender,
-                    arrayRecipient: newArrayRecipient,
-                    messagesSender: messagesSender,
-                    messagesRecipient: messagesRecipient,
-                    messageBody: messagebody
+                    status: "sent",
+                    topic: req.body.topic,
+                    message: req.body.message,
+                };
+                res.send(feedback);
+                return [2 /*return*/];
+        }
+    });
+}); });
+//?get all messages related to user
+server.get("/getMessages", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var sentMessages, receivedMessages, feedback;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(messageCenter_1.MessageCenter)
+                    .createQueryBuilder("message")
+                    .select("message.messageId")
+                    .addSelect("message.date")
+                    .addSelect("message.topic")
+                    .addSelect("message.message")
+                    .addSelect("message.createdByName")
+                    .addSelect("message.receivedByName")
+                    .where("message.createdById = :createdById", { createdById: req["user"]["userId"] })
+                    .getMany()];
+            case 1:
+                sentMessages = _a.sent();
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(messageCenter_1.MessageCenter)
+                        .createQueryBuilder("message")
+                        .select("message.messageId")
+                        .addSelect("message.date")
+                        .addSelect("message.topic")
+                        .addSelect("message.message")
+                        .addSelect("message.createdByName")
+                        .addSelect("message.receivedByName")
+                        .where("message.receivedById = :receivedById", { receivedById: req["user"]["userId"] })
+                        .getMany()];
+            case 2:
+                receivedMessages = _a.sent();
+                feedback = {
+                    sentMessages: sentMessages,
+                    receivedMessages: receivedMessages
                 };
                 res.send(feedback);
                 return [2 /*return*/];

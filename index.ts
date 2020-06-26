@@ -134,123 +134,93 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
 })
 // !API-Schnittstelle User END//
 
+
 // !API-Schnittstelle Messages //
-server.get("/getUserMessages", jwtTokenUberprufung, async (req: Request, res: Response) => {
-
-    const messagesUser = await getConnection()
-        .getRepository(UserData)
-        .createQueryBuilder("user")
-        .select("user.messages")
-        .where("user.id = :id", { id: req["user"]["userId"] })
-        .getOne()
-        .catch((err) => {
-            res.send(err)
-        })
-
-    if (messagesUser["messages"] === "") {
-        res.send("Keine Nachrichten vorhanden")
-    } else {
-        res.send(JSON.parse(messagesUser["messages"]))
-    }
-})
+//?Send new message to recipient
 server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
-    const messagesSender = await getConnection()
+    const recipient = await getConnection()
         .getRepository(UserData)
         .createQueryBuilder("user")
-        .select("user.sentMessages")
-        .where("user.id = :id", { id: req["user"]["userId"] })
-        .getOne()
-
-    const messagesRecipient = await getConnection()
-        .getRepository(UserData)
-        .createQueryBuilder("user")
-        .select("user.receivedMessages")
+        .select("user.id")
         .where("user.username = :username", { username: req.params.username })
         .getOne()
-
-    let newArraySender = []
-    let newArrayRecipient = []
+        .catch((err) => {
+        res.send(err)
+    })
 
     const messagebody = {
+        id: `message_id_${randomId()}`,
         messageId: `message_id_${randomId()}`,
         date: new Date,
         topic: req.body.topic,
         message: req.body.message,
-        // createdById: req["user"]["userId"],
-        createdByName: req["user"]["username"]
+        createdByName: req["user"]["username"],
+        createdById: req["user"]["userId"],
+        receivedByName: req.params.username,
+        receivedById: recipient["id"]
     }
 
-    //*Add message to sender
-    if (messagesSender["sentMessages"] === "") {
-        newArraySender.push(messagebody)
-    } else {
-        newArraySender = JSON.parse(messagesSender["sentMessages"])
-        newArraySender.push(messagebody)
-    }
-    // //*Add message to recipient
-    if (messagesRecipient["receivedMessages"] === "") {
-        newArrayRecipient.push(messagebody)
-    } else {
-        newArrayRecipient = JSON.parse(messagesRecipient["receivedMessages"])
-        newArrayRecipient.push(messagebody)
-    }
-
-    const updateMessagesSender = await getConnection()
+    const updateMessagesCenter = await getConnection()
         .createQueryBuilder()
-        .update(UserData)
-        .set({ sentMessages: JSON.stringify(newArraySender) })
-        .where("id = :id", { id: req["user"]["userId"] })
+        .insert()
+        .into(MessageCenter)
+        .values([
+            messagebody
+        ])
         .execute()
+        .catch((err) => {
+            res.send(err)
+        })
 
-    let feedback = {
-        arraySender: newArraySender,
-        arrayRecipient: newArrayRecipient,
-        messagesSender: messagesSender,
-        messagesRecipient: messagesRecipient,
-        messageBody: messagebody
+    const feedback = {
+        status: "sent",
+        topic: req.body.topic,
+        message: req.body.message,
     }
 
     res.send(feedback)
 
-
-
-
-
-
-
-
-    // //*Add message to sender END
-
-
-
-    // const updateMessagesRecipient = await getConnection()
-    //     .createQueryBuilder()
-    //     .update(UserData)
-    //     .set({ messages: JSON.stringify(newArraySender) })
-    //     .where("username = :username", { username: req.params.username })
-    //     .execute()
-    // //*Add message to recipient END
-
-    // let response = {
-    //     status: "sent",
-    //     from: req["user"]["userId"],
-    //     to: req.params.username,
-    //     details: {
-    //         sender: updateMessagesSender,
-    //         recipient: updateMessagesRecipient
-    //     }
-    // }
-
-    // res.send(response)
-
 })
+//?get all messages related to user
+server.get("/getMessages", jwtTokenUberprufung, async (req: Request, res: Response) => {
+    
+    const sentMessages = await getConnection()
+        .getRepository(MessageCenter)
+        .createQueryBuilder("message")
+        .select("message.messageId")
+        .addSelect("message.date")
+        .addSelect("message.topic")
+        .addSelect("message.message")
+        .addSelect("message.createdByName")
+        .addSelect("message.receivedByName")
+        .where("message.createdById = :createdById", { createdById: req["user"]["userId"]})
+        .getMany()
+    
+    const receivedMessages = await getConnection()
+        .getRepository(MessageCenter)
+        .createQueryBuilder("message")
+        .select("message.messageId")
+        .addSelect("message.date")
+        .addSelect("message.topic")
+        .addSelect("message.message")
+        .addSelect("message.createdByName")
+        .addSelect("message.receivedByName")
+        .where("message.receivedById = :receivedById", { receivedById: req["user"]["userId"] })
+        .getMany()
+    
+    const feedback = {
+        sentMessages: sentMessages,
+        receivedMessages: receivedMessages
+    }
 
-
+    res.send(feedback)
+    
+})
 // !API-Schnittstelle Messages END//
 
-// !API-Schnittstelle Locations //
 
+// !API-Schnittstelle Locations //
 //?Just tests if Server is online
 server.get("/", (req: Request, res: Response) => {
     console.log("Server ist online !")

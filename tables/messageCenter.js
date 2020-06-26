@@ -42,6 +42,14 @@ var MessageCenter = /** @class */ (function () {
         typeorm_1.Column(),
         __metadata("design:type", String)
     ], MessageCenter.prototype, "createdById", void 0);
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], MessageCenter.prototype, "receivedByName", void 0);
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], MessageCenter.prototype, "receivedById", void 0);
     MessageCenter = __decorate([
         typeorm_1.Entity()
     ], MessageCenter);

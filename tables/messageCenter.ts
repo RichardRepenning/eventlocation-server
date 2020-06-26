@@ -18,4 +18,8 @@ export class MessageCenter {
     createdByName: string
     @Column()
     createdById: string
+    @Column()
+    receivedByName: string
+    @Column()
+    receivedById: string
 }
