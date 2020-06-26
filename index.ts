@@ -30,7 +30,7 @@ createConnection().then(conn => {
 })
 
 //!JWT Validation
-const jwtTokenUberprufung = (req:Request, res: Response, next) => {
+const jwtTokenUberprufung = (req: Request, res: Response, next) => {
 
     const authent = req.headers.authorization
 
@@ -134,33 +134,98 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
 // !API-Schnittstelle User END//
 
 // !API-Schnittstelle Messages //
-server.post("/message/:locationId", jwtTokenUberprufung, async (req: Request, res: Response) => {
-    
-    // const messages = await getConnection()
-    //     .getRepository(UserData)
-    //     .createQueryBuilder("user")
-    //     .select("user.favourites")
-    //     .where("user.id = :id", { id: req["user"]["userId"] })
-    //     .getOne()
+server.get("/getUserMessages", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
-    // let newArray = []
+    const messagesUser = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.messages")
+        .where("user.id = :id", { id: req["user"]["userId"] })
+        .getOne()
+        .catch((err) => {
+            res.send(err)
+        })
+  
+    if (!messagesUser) {
+        res.send("Keine Nachrichten vorhanden")
+    } else {
+        res.send(JSON.parse(messagesUser["messages"]))
+    }
+})
+server.post("/message/:username", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
-    // if (favourites.favourites === "") {
-    //     newArray.push(req.params.id)
-    // } else {
-    //     newArray = JSON.parse(favourites.favourites)
-    //     let duplicateCheck = newArray.some((entry) => {
-    //         return entry === req.params.id
-    //     })
-    //     if (!duplicateCheck) {
-    //         newArray.push(req.params.id)
-    //     } else {
-    //         res.send("Location ist bereits als Favourit gespeichert")
-    //     }
-    // }
+    const messagesSender = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.messages")
+        .where("user.id = :id", { id: req["user"]["userId"] })
+        .getOne()
 
+    const messagesRecipient = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.messages")
+        .where("user.username = :username", { id: req.params.username })
+        .getOne()
+
+    let newArraySender = []
+    let newArrayRecipient = []
+
+    const messagebody = {
+        messageId: `message_id_${randomId()}`,
+        date: new Date,
+        topic: req.body.topic,
+        message: req.body.message,
+        // createdById: req["user"]["userId"],
+        createdByName: req["user"]["username"]
+    }
+
+    //*Add message to sender
+    if (messagesSender["messages"] === "") {
+        newArraySender.push(messagebody)
+    } else {
+        newArraySender = JSON.parse(messagesSender["messages"])
+        newArraySender.push(messagebody)
+    }
+
+    const updateMessagesSender = await getConnection()
+        .createQueryBuilder()
+        .update(UserData)
+        .set({ messages: JSON.stringify(newArraySender) })
+        .where("id = :id", { id: req["user"]["userId"] })
+        .execute()
+    //*Add message to sender END
+
+
+    //*Add message to recipient
+    if (messagesRecipient["messages"] === "") {
+        newArrayRecipient.push(messagebody)
+    } else {
+        newArrayRecipient = JSON.parse(messagesRecipient["messages"])
+        newArrayRecipient.push(messagebody)
+    }
+    const updateMessagesRecipient = await getConnection()
+        .createQueryBuilder()
+        .update(UserData)
+        .set({ messages: JSON.stringify(newArraySender) })
+        .where("username = :username", { username: req.params.username })
+        .execute()
+    //*Add message to recipient END
+
+    let response = {
+        status: "sent",
+        from: req["user"]["userId"],
+        to: req.params.username,
+        details: {
+            sender: updateMessagesSender,
+            recipient: updateMessagesRecipient
+        }
+    }
+
+    res.send(response)
 
 })
+
 
 // !API-Schnittstelle Messages END//
 
@@ -222,7 +287,7 @@ server.get("/locationDetails/id/:id", async (req: Request, res: Response) => {
     res.send(locationDetails)
 })
 //?Post Location
-server.post("/postLocation", jwtTokenUberprufung, async (req:Request, res: Response) => {
+server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
     let uniqueId: string = randomId()
 
@@ -312,7 +377,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req:Request, res: Respo
     res.send(responseBody)
 })
 //?Delete Location
-server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req:Request, res: Response) => {
+server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
     const locationDeleteCheck = await getConnection()
         .getRepository(LocationPreview)
@@ -349,7 +414,7 @@ server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req:Request, re
 
 })
 //?Update Location
-server.put("/updateLocation/:id", jwtTokenUberprufung, async (req:Request, res: Response) => {
+server.put("/updateLocation/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
     //*Validate Location to userId and Id
     const LocationAvailable = await getConnection()
@@ -490,7 +555,7 @@ server.post("/searchLocationAdvanced", async (req: Request, res: Response) => {
 
 })
 //? Just fetch created Locations from User
-server.get("/userCreatedLocations", jwtTokenUberprufung, async (req:Request, res: Response) => {
+server.get("/userCreatedLocations", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
     const userLocations = await getConnection()
         .getRepository(LocationPreview)
@@ -506,7 +571,7 @@ server.get("/userCreatedLocations", jwtTokenUberprufung, async (req:Request, res
 
 })
 //? Save Favourite by location ID
-server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, async (req:Request, res: Response) => {
+server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
     const favourites = await getConnection()
         .getRepository(UserData)
@@ -535,13 +600,13 @@ server.put("/saveFavouriteLocations/:id", jwtTokenUberprufung, async (req:Reques
         .createQueryBuilder()
         .update(UserData)
         .set({ favourites: JSON.stringify(newArray) })
-        .where("id = :id", { id: req["user"]["userId"]})
+        .where("id = :id", { id: req["user"]["userId"] })
         .execute()
 
     res.send(`Zu Favouriten hinzugefügt: ${newArray}`)
 })
 //?Just return user favourites
-server.get("/userFavourites", jwtTokenUberprufung, async (req:Request, res: Response) => {
+server.get("/userFavourites", jwtTokenUberprufung, async (req: Request, res: Response) => {
 
     const listOfFavourites = await getConnection()
         .getRepository(UserData)
@@ -554,7 +619,7 @@ server.get("/userFavourites", jwtTokenUberprufung, async (req:Request, res: Resp
         })
 
     let favourites;
-    
+
     if (listOfFavourites["favourites"] !== "") {
         favourites = JSON.parse(listOfFavourites["favourites"])
     } else {
@@ -567,20 +632,20 @@ server.get("/userFavourites", jwtTokenUberprufung, async (req:Request, res: Resp
         .innerJoinAndSelect("preview.locationDetails", "details") //*Alias für Einträge in LocationPreview & LocationDetails
         .where("preview.id IN (:...id)", { id: favourites })
         .getMany()
-    
+
     res.send(locationDetails)
 
 })
 //? Deletes users favourite
 server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
-    
+
     const listOfUserFavourites = await getConnection()
         .getRepository(UserData)
         .createQueryBuilder("user")
         .select("user.favourites")
         .where("user.id = :id", { id: req["user"]["userId"] })
         .getOne()
-    
+
     const newListOfUserFavourites = JSON.parse(listOfUserFavourites["favourites"]).filter((entry) => {
         return entry !== req.params.id
     })
@@ -589,9 +654,9 @@ server.delete("/deleteUserFavourite/:id", jwtTokenUberprufung, async (req: Reque
         .createQueryBuilder()
         .update(UserData)
         .set({ favourites: JSON.stringify(newListOfUserFavourites) })
-        .where("id = :id", { id: req["user"]["userId"]  })
+        .where("id = :id", { id: req["user"]["userId"] })
         .execute()
-    
+
     res.send(newListOfUserFavourites)
 
 })

@@ -176,9 +176,111 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
 }); });
 // !API-Schnittstelle User END//
 // !API-Schnittstelle Messages //
-server.post("/message/:locationId", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+server.get("/getUserMessages", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var messagesUser;
     return __generator(this, function (_a) {
-        return [2 /*return*/];
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .select("user.messages")
+                    .where("user.id = :id", { id: req["user"]["userId"] })
+                    .getOne()
+                    .catch(function (err) {
+                    res.send(err);
+                })];
+            case 1:
+                messagesUser = _a.sent();
+                if (!messagesUser) {
+                    res.send("Keine Nachrichten vorhanden");
+                }
+                else {
+                    res.send(JSON.parse(messagesUser["messages"]));
+                }
+                return [2 /*return*/];
+        }
+    });
+}); });
+server.post("/message/:username", jwtTokenUberprufung, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var messagesSender, messagesRecipient, newArraySender, newArrayRecipient, messagebody, updateMessagesSender, updateMessagesRecipient, response;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_2.getConnection()
+                    .getRepository(userdata_1.UserData)
+                    .createQueryBuilder("user")
+                    .select("user.messages")
+                    .where("user.id = :id", { id: req["user"]["userId"] })
+                    .getOne()];
+            case 1:
+                messagesSender = _a.sent();
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .getRepository(userdata_1.UserData)
+                        .createQueryBuilder("user")
+                        .select("user.messages")
+                        .where("user.username = :username", { id: req.params.username })
+                        .getOne()];
+            case 2:
+                messagesRecipient = _a.sent();
+                newArraySender = [];
+                newArrayRecipient = [];
+                messagebody = {
+                    messageId: "message_id_" + randomGenerator_1.default(),
+                    date: new Date,
+                    topic: req.body.topic,
+                    message: req.body.message,
+                    // createdById: req["user"]["userId"],
+                    createdByName: req["user"]["username"]
+                };
+                //*Add message to sender
+                if (messagesSender["messages"] === "") {
+                    newArraySender.push(messagebody);
+                }
+                else {
+                    newArraySender = JSON.parse(messagesSender["messages"]);
+                    newArraySender.push(messagebody);
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .update(userdata_1.UserData)
+                        .set({ messages: JSON.stringify(newArraySender) })
+                        .where("id = :id", { id: req["user"]["userId"] })
+                        .execute()
+                    //*Add message to sender END
+                    //*Add message to recipient
+                ];
+            case 3:
+                updateMessagesSender = _a.sent();
+                //*Add message to sender END
+                //*Add message to recipient
+                if (messagesRecipient["messages"] === "") {
+                    newArrayRecipient.push(messagebody);
+                }
+                else {
+                    newArrayRecipient = JSON.parse(messagesRecipient["messages"]);
+                    newArrayRecipient.push(messagebody);
+                }
+                return [4 /*yield*/, typeorm_2.getConnection()
+                        .createQueryBuilder()
+                        .update(userdata_1.UserData)
+                        .set({ messages: JSON.stringify(newArraySender) })
+                        .where("username = :username", { username: req.params.username })
+                        .execute()
+                    //*Add message to recipient END
+                ];
+            case 4:
+                updateMessagesRecipient = _a.sent();
+                response = {
+                    status: "sent",
+                    from: req["user"]["userId"],
+                    to: req.params.username,
+                    details: {
+                        sender: updateMessagesSender,
+                        recipient: updateMessagesRecipient
+                    }
+                };
+                res.send(response);
+                return [2 /*return*/];
+        }
     });
 }); });
 // !API-Schnittstelle Messages END//

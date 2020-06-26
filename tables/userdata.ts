@@ -5,7 +5,7 @@ export class UserData {
 
     @PrimaryColumn()
     id: string;
-    @Column()
+    @Column({unique: true})
     username: string;
     @Column({ default: "" })
     vorname: string;
