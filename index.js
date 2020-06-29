@@ -51,7 +51,10 @@ var server = express();
 var port = process.env.PORT || 3000;
 //!WebSocket-Server
 var Websocket = require("ws");
-var url = "ws://localhost:3333";
+//!DEV-Mode
+// const url = "http://localhost:3333";
+// //!PROD-Mode
+var url = "https://websocket-eventlocation.herokuapp.com/";
 //?WebsocketMessageBody for user & bot
 function wsUserMessageBody(doFunction, register, username, topic, message) {
     if (topic === void 0) { topic = ""; }
@@ -76,7 +79,7 @@ function wsBotMessageBody(doFunction, register, bot_id, topic, message) {
     };
 }
 //?Function can be implemented into POSTS
-function pushNewAds(place, username, price) {
+function pushNewAds(place, username, price, id) {
     if (place === void 0) { place = ""; }
     if (username === void 0) { username = ""; }
     if (price === void 0) { price = ""; }
@@ -88,7 +91,8 @@ function pushNewAds(place, username, price) {
         doFunction: "PUSH Ads",
         place: place,
         username: username,
-        price: price
+        price: price,
+        id: id
     }));
 }
 //?TestBot raects to webocket-API endpoint
@@ -163,21 +167,12 @@ server.get("/websocket", function (req, res) {
     }));
     res.json("Message-Bot registered");
 });
+//*Delete WebsocketBots for testing purpose
 server.delete("/websocketBots", jwtTokenUberprufung, function (req, res) {
     if (req["user"]["role"] === "admin") {
         connectionMainBot.close();
         connectionPushBot.close();
         res.json("All bots deleted");
-    }
-    else {
-        res.json("Keine Rechte");
-    }
-});
-server.post("/websocketBots", jwtTokenUberprufung, function (req, res) {
-    if (req["user"]["role"] === "admin") {
-        connectionMainBot.open();
-        connectionPushBot.open();
-        res.json("Bots reaktiviert");
     }
     else {
         res.json("Keine Rechte");
@@ -619,7 +614,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                     status: "Posted on " + new Date()
                 };
                 res.json(responseBody);
-                pushNewAds(expectedBodyPreview.place, req["user"]["username"], expectedBodyPreview.price);
+                pushNewAds(expectedBodyPreview.place, req["user"]["username"], expectedBodyPreview.price, expectedBodyPreview.id);
                 return [2 /*return*/];
         }
     });
