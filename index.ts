@@ -14,9 +14,85 @@ const cors = require("cors")
 const server = express()
 const port = process.env.PORT || 3000
 
+//!WebSocket-Server
+const Websocket = require("ws")
+const url = "ws://localhost:3333";
+
+
+//?WebsocketMessageBody for user & bot
+function wsUserMessageBody(doFunction, register, username, topic="", message="") {
+    return {
+        doFunction: doFunction,
+        register: register,
+        username: username,
+        topic: topic,
+        message: message
+    }
+}
+function wsBotMessageBody(doFunction, register, bot_id,topic="auto",message="auto") {
+    return {
+        doFunction: doFunction,
+        register: register,
+        bot_id: bot_id,
+        topic: topic,
+        message: message
+    }
+}
+//?Function can be implemented into POSTS
+function pushNewAds(place = "", username = "", price = "") {
+    connectionPushBot.send(JSON.stringify({
+        register: false,
+        bot_id: "connectionPushBot",
+        topic: "newAds posted !",
+        message: "New Ad was posted",
+        doFunction: "PUSH Ads",
+        place: place,
+        username: username,
+        price: price
+    }))
+}
+
+
+//?TestBot raects to webocket-API endpoint
+const connectionMainBot = new Websocket(url);
+connectionMainBot.onopen = () => {
+    console.log("Verbindung steht")
+
+    let register = {
+        register: true,
+        name: "Message-Bot",
+        bot_id: "connectionMainBot",
+        doFunction: "NEW bot",
+        date: new Date()
+    }
+    connectionMainBot.send(JSON.stringify(register));
+};
+connectionMainBot.onmessage = (mess) => {
+    console.log(mess.data)
+}
+
+//?PushBot sends new Ads to User
+const connectionPushBot = new Websocket(url);
+connectionPushBot.onopen = () => {
+    console.log("Verbindung steht")
+
+    let register = {
+        register: true,
+        name: "PushAds-Bot",
+        doFunction: "NEW bot",
+        bot_id: "connectionPushBot",
+        date: new Date()
+    }
+    connectionPushBot.send(JSON.stringify(register));
+};
+
+//!WebSocket-Server END
+
+
 //!USE CORS for internal testing purposes
 server.use(cors())
 server.use(bodyParser.json())
+
 
 //!USE jwt and bcrypt for user authentication
 const jwt = require('jsonwebtoken'); //?Implements JWT Service
@@ -24,11 +100,13 @@ const tokensSecret = "HeyItsMeMario987654321*/&!§$%%&&()=?"
 const bcrypt = require("bcrypt"); //*For password encryption
 const saltRounds = 10; //*level of Password salting
 
+
 //!Create TypeORM-Connection and Table(if not exists)
 createConnection().then(conn => {
     console.log("Datenbank-Connection steht")
     console.log("randomId-Generator Test", randomId())
 })
+
 
 //!JWT Validation
 const jwtTokenUberprufung = (req: Request, res: Response, next) => {
@@ -50,6 +128,34 @@ const jwtTokenUberprufung = (req: Request, res: Response, next) => {
     }
 }
 
+
+//*TEST Websocket-API || Catch all bots
+server.get("/websocket", (req: Request, res: Response) => {
+
+    
+    
+    connectionMainBot.send(JSON.stringify({
+        register: false,
+        name:"Message-Bot",
+        bot_id: "connectionMainBot",
+        message: "Ich bin die Api Websocket",
+        doFunction: "GET bots"
+    }))
+
+    res.json("Message-Bot registered")
+})
+//*Delete WebsocketBots for testing purpose
+server.delete("/websocketBots",jwtTokenUberprufung, (req: Request, res: Response) => {
+
+    if (req["user"]["role"] === "admin") {
+        connectionMainBot.close()
+        connectionPushBot.close()
+        res.json("All bots deleted")
+    } else {
+        res.json("Keine Rechte")
+    }
+})
+
 // !API-Schnittstelle User //
 //?Register new User
 server.post("/createUser", async (req: Request, res: Response) => {
@@ -66,9 +172,15 @@ server.post("/createUser", async (req: Request, res: Response) => {
 
     const userdata = {
         id: `user_id_${randomId()}`, //User-ID default "Gast"
-        username: req.body.username,
-        passwort: null,
+        vorname: req.body.vorname,
+        nachname: req.body.nachname,
+        telephone: req.body.telephone,
         email: req.body.email,
+        passwort: null,
+        username: req.body.username,
+        strasse: req.body.strasse,
+        ort: req.body.ort,
+        plz: req.body.plz,        
         status: req.body.status,
         registerDate: new Date()
     }
@@ -117,7 +229,7 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
                 console.log("user", user)
                 console.log("ress", ress)
                 if (ress) {
-                    const sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret)
+                    const sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username, role: user.role, websocketAccess: user.websocketAccess }, tokensSecret)
                     res.json({ sessionToken })
                 } else {
                     res.json("Benutzername oder Passwort falsch | User nicht vorhanden")
@@ -130,7 +242,6 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
     } else {
         res.json("Benutzername oder Passwort falsch | User nicht vorhanden")
     }
-
 })
 // !API-Schnittstelle User END//
 
@@ -385,7 +496,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
         place: req.body.place,
         price: req.body.price,
         date: new Date(),
-        username: req.body.username,
+        username: req["user"]["username"],
         userId: req["user"]["userId"]
     }
 
@@ -444,6 +555,8 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
     }
 
     res.json(responseBody)
+
+    pushNewAds(expectedBodyPreview.place, req["user"]["username"],expectedBodyPreview.price)
 })
 //?Delete Location
 server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {

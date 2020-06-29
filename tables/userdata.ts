@@ -18,6 +18,8 @@ export class UserData {
     @Column({ default: "" })
     ort: string;
     @Column()
+    telephone: string;
+    @Column()
     passwort: string;
     @Column({ unique: true })
     email: string;
@@ -36,5 +38,9 @@ export class UserData {
     @Column({ default: "" })
     blockmessages: string;
     @Column()
-    registerDate: Date
+    registerDate: Date;
+    @Column({ default: "user" })
+    role: string;
+    @Column({default: true})
+    websocketAccess: boolean
 }

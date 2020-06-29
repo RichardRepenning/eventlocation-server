@@ -15,12 +15,16 @@
     "mysql": "^2.18.1",
     "reflect-metadata": "^0.1.13",
     "typeorm": "^0.2.25",
-    "typescript": "^3.9.5"
+    "typescript": "^3.9.5",
+    "websocket": "^1.0.31",
+    "ws": "^7.3.0"
   },
   "devDependencies": {},
   "scripts": {
     "build": "tsc",
-    "start": "node index.js"
+    "start": "node index.js",
+    "apiserver": "node index.js",
+    "wsserver": "node websocket-server.js"
   },
   "repository": {
     "type": "git",

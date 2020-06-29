@@ -45,6 +45,10 @@ var UserData = /** @class */ (function () {
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
+    ], UserData.prototype, "telephone", void 0);
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
     ], UserData.prototype, "passwort", void 0);
     __decorate([
         typeorm_1.Column({ unique: true }),
@@ -82,6 +86,14 @@ var UserData = /** @class */ (function () {
         typeorm_1.Column(),
         __metadata("design:type", Date)
     ], UserData.prototype, "registerDate", void 0);
+    __decorate([
+        typeorm_1.Column({ default: "user" }),
+        __metadata("design:type", String)
+    ], UserData.prototype, "role", void 0);
+    __decorate([
+        typeorm_1.Column({ default: true }),
+        __metadata("design:type", Boolean)
+    ], UserData.prototype, "websocketAccess", void 0);
     UserData = __decorate([
         typeorm_1.Entity()
     ], UserData);

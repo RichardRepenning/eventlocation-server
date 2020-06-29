@@ -49,6 +49,78 @@ var bodyParser = require("body-parser");
 var cors = require("cors");
 var server = express();
 var port = process.env.PORT || 3000;
+//!WebSocket-Server
+var Websocket = require("ws");
+var url = "ws://localhost:3333";
+//?WebsocketMessageBody for user & bot
+function wsUserMessageBody(doFunction, register, username, topic, message) {
+    if (topic === void 0) { topic = ""; }
+    if (message === void 0) { message = ""; }
+    return {
+        doFunction: doFunction,
+        register: register,
+        username: username,
+        topic: topic,
+        message: message
+    };
+}
+function wsBotMessageBody(doFunction, register, bot_id, topic, message) {
+    if (topic === void 0) { topic = "auto"; }
+    if (message === void 0) { message = "auto"; }
+    return {
+        doFunction: doFunction,
+        register: register,
+        bot_id: bot_id,
+        topic: topic,
+        message: message
+    };
+}
+//?Function can be implemented into POSTS
+function pushNewAds(place, username, price) {
+    if (place === void 0) { place = ""; }
+    if (username === void 0) { username = ""; }
+    if (price === void 0) { price = ""; }
+    connectionPushBot.send(JSON.stringify({
+        register: false,
+        bot_id: "connectionPushBot",
+        topic: "newAds posted !",
+        message: "New Ad was posted",
+        doFunction: "PUSH Ads",
+        place: place,
+        username: username,
+        price: price
+    }));
+}
+//?TestBot raects to webocket-API endpoint
+var connectionMainBot = new Websocket(url);
+connectionMainBot.onopen = function () {
+    console.log("Verbindung steht");
+    var register = {
+        register: true,
+        name: "Message-Bot",
+        bot_id: "connectionMainBot",
+        doFunction: "NEW bot",
+        date: new Date()
+    };
+    connectionMainBot.send(JSON.stringify(register));
+};
+connectionMainBot.onmessage = function (mess) {
+    console.log(mess.data);
+};
+//?PushBot sends new Ads to User
+var connectionPushBot = new Websocket(url);
+connectionPushBot.onopen = function () {
+    console.log("Verbindung steht");
+    var register = {
+        register: true,
+        name: "PushAds-Bot",
+        doFunction: "NEW bot",
+        bot_id: "connectionPushBot",
+        date: new Date()
+    };
+    connectionPushBot.send(JSON.stringify(register));
+};
+//!WebSocket-Server END
 //!USE CORS for internal testing purposes
 server.use(cors());
 server.use(bodyParser.json());
@@ -80,6 +152,37 @@ var jwtTokenUberprufung = function (req, res, next) {
         res.json("Fehler, kein gültiger User oder du bist nicht eingeloggt");
     }
 };
+//*TEST Websocket-API || Catch all bots
+server.get("/websocket", function (req, res) {
+    connectionMainBot.send(JSON.stringify({
+        register: false,
+        name: "Message-Bot",
+        bot_id: "connectionMainBot",
+        message: "Ich bin die Api Websocket",
+        doFunction: "GET bots"
+    }));
+    res.json("Message-Bot registered");
+});
+server.delete("/websocketBots", jwtTokenUberprufung, function (req, res) {
+    if (req["user"]["role"] === "admin") {
+        connectionMainBot.close();
+        connectionPushBot.close();
+        res.json("All bots deleted");
+    }
+    else {
+        res.json("Keine Rechte");
+    }
+});
+server.post("/websocketBots", jwtTokenUberprufung, function (req, res) {
+    if (req["user"]["role"] === "admin") {
+        connectionMainBot.open();
+        connectionPushBot.open();
+        res.json("Bots reaktiviert");
+    }
+    else {
+        res.json("Keine Rechte");
+    }
+});
 // !API-Schnittstelle User //
 //?Register new User
 server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
@@ -98,9 +201,15 @@ server.post("/createUser", function (req, res) { return __awaiter(void 0, void 0
                 }
                 userdata = {
                     id: "user_id_" + randomGenerator_1.default(),
-                    username: req.body.username,
-                    passwort: null,
+                    vorname: req.body.vorname,
+                    nachname: req.body.nachname,
+                    telephone: req.body.telephone,
                     email: req.body.email,
+                    passwort: null,
+                    username: req.body.username,
+                    strasse: req.body.strasse,
+                    ort: req.body.ort,
+                    plz: req.body.plz,
                     status: req.body.status,
                     registerDate: new Date()
                 };
@@ -156,7 +265,7 @@ server.post("/auth0/login", function (req, res) { return __awaiter(void 0, void 
                         console.log("user", user);
                         console.log("ress", ress);
                         if (ress) {
-                            var sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username }, tokensSecret);
+                            var sessionToken = jwt.sign({ email: user.email, userId: user.id, status: user.status, username: user.username, role: user.role, websocketAccess: user.websocketAccess }, tokensSecret);
                             res.json({ sessionToken: sessionToken });
                         }
                         else {
@@ -454,7 +563,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                     place: req.body.place,
                     price: req.body.price,
                     date: new Date(),
-                    username: req.body.username,
+                    username: req["user"]["username"],
                     userId: req["user"]["userId"]
                 };
                 failResponse = [];
@@ -510,6 +619,7 @@ server.post("/postLocation", jwtTokenUberprufung, function (req, res) { return _
                     status: "Posted on " + new Date()
                 };
                 res.json(responseBody);
+                pushNewAds(expectedBodyPreview.place, req["user"]["username"], expectedBodyPreview.price);
                 return [2 /*return*/];
         }
     });
