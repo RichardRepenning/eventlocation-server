@@ -16,7 +16,10 @@ const port = process.env.PORT || 3000
 
 //!WebSocket-Server
 const Websocket = require("ws")
-const url = "ws://localhost:3333";
+//!DEV-Mode
+// const url = "http://localhost:3333";
+// //!PROD-Mode
+const url = "https://websocket-eventlocation.herokuapp.com/";
 
 
 //?WebsocketMessageBody for user & bot
@@ -39,7 +42,7 @@ function wsBotMessageBody(doFunction, register, bot_id,topic="auto",message="aut
     }
 }
 //?Function can be implemented into POSTS
-function pushNewAds(place = "", username = "", price = "") {
+function pushNewAds(place = "", username = "", price = "", id) {
     connectionPushBot.send(JSON.stringify({
         register: false,
         bot_id: "connectionPushBot",
@@ -48,7 +51,8 @@ function pushNewAds(place = "", username = "", price = "") {
         doFunction: "PUSH Ads",
         place: place,
         username: username,
-        price: price
+        price: price,
+        id: id
     }))
 }
 
@@ -556,7 +560,7 @@ server.post("/postLocation", jwtTokenUberprufung, async (req: Request, res: Resp
 
     res.json(responseBody)
 
-    pushNewAds(expectedBodyPreview.place, req["user"]["username"],expectedBodyPreview.price)
+    pushNewAds(expectedBodyPreview.place, req["user"]["username"], expectedBodyPreview.price, expectedBodyPreview.id)
 })
 //?Delete Location
 server.delete("/deleteLocation/:id", jwtTokenUberprufung, async (req: Request, res: Response) => {
