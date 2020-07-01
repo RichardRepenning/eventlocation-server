@@ -267,8 +267,7 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
 })
 server.get("/userdetails", jwtTokenUberprufung, async (req: Request, res: Response) => {
     
-
-
+    
     const user = await getConnection()
         .getRepository(UserData)
         .createQueryBuilder("user")
@@ -286,9 +285,6 @@ server.get("/userdetails", jwtTokenUberprufung, async (req: Request, res: Respon
         .where("user.email = :email", { email: req["user"]["email"] })
         .andWhere("user.id = :id", {id: req["user"]["userId"]})
         .getOne()
-        .catch((err) => {
-        res.json(err)
-        })
     
     res.json(user)
     
