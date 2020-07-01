@@ -60,10 +60,11 @@ function pushNewAds(place = "", username = "", price = "", id) {
 //?TestBot raects to webocket-API endpoint
 const connectionMainBot = new Websocket(url);
 connectionMainBot.onopen = () => {
-    console.log("Verbindung steht")
+    console.log("MainBot: Verbindung steht")
 
     let register = {
         register: true,
+        role: "bot",
         name: "Message-Bot",
         bot_id: "connectionMainBot",
         doFunction: "NEW bot",
@@ -72,16 +73,17 @@ connectionMainBot.onopen = () => {
     connectionMainBot.send(JSON.stringify(register));
 };
 connectionMainBot.onmessage = (mess) => {
-    console.log(mess.data)
+    console.log("mainbot:",mess.data)
 }
 
 //?PushBot sends new Ads to User
 const connectionPushBot = new Websocket(url);
 connectionPushBot.onopen = () => {
-    console.log("Verbindung steht")
+    console.log("PushBot: Verbindung steht")
 
     let register = {
         register: true,
+        role:"bot",
         name: "PushAds-Bot",
         doFunction: "NEW bot",
         bot_id: "connectionPushBot",
@@ -89,6 +91,9 @@ connectionPushBot.onopen = () => {
     }
     connectionPushBot.send(JSON.stringify(register));
 };
+connectionPushBot.onmessage = (mess) => {
+    console.log("pushbot:", mess.data)
+}
 
 //!WebSocket-Server END
 
@@ -136,10 +141,9 @@ const jwtTokenUberprufung = (req: Request, res: Response, next) => {
 //*TEST Websocket-API || Catch all bots
 server.get("/websocket", (req: Request, res: Response) => {
 
-    
-    
     connectionMainBot.send(JSON.stringify({
         register: false,
+        role: "bot",
         name:"Message-Bot",
         bot_id: "connectionMainBot",
         message: "Ich bin die Api Websocket",
@@ -158,6 +162,20 @@ server.delete("/websocketBots",jwtTokenUberprufung, (req: Request, res: Response
     } else {
         res.json("Keine Rechte")
     }
+})
+
+server.get("/websocketStatus", (req: Request, res: Response) => {
+
+    connectionMainBot.send(JSON.stringify({
+        register: false,
+        role: "bot",
+        name: "Message-Bot",
+        bot_id: "",
+        message: "",
+        doFunction: "GET status"
+    }))
+
+    res.json("Message sent")
 })
 
 // !API-Schnittstelle User //
