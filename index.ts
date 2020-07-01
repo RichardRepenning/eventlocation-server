@@ -265,6 +265,34 @@ server.post("/auth0/login", async (req: Request, res: Response) => {
         res.json("Benutzername oder Passwort falsch | User nicht vorhanden")
     }
 })
+server.get("/userdetails", jwtTokenUberprufung, async (req: Request, res: Response) => {
+    
+
+
+    const user = await getConnection()
+        .getRepository(UserData)
+        .createQueryBuilder("user")
+        .select("user.id")
+        .addSelect("user.username")
+        .addSelect("user.vorname")
+        .addSelect("user.nachname")
+        .addSelect("user.strasse")
+        .addSelect("user.plz")
+        .addSelect("user.ort")
+        .addSelect("user.email")
+        .addSelect("user.status")
+        .addSelect("user.registerDate")
+        .addSelect("user.role")
+        .where("user.email = :email", { email: req["user"]["email"] })
+        .andWhere("user.id = :id", {id: req["user"]["userId"]})
+        .getOne()
+        .catch((err) => {
+        res.json(err)
+        })
+    
+    res.json(user)
+    
+})
 // !API-Schnittstelle User END//
 
 
